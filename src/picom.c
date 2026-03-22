@@ -2039,7 +2039,7 @@ static const session_t s_def = {
     .srwm_center_x = 0,
     .srwm_center_y = 0,
     .srwm_canvas_active = false,
-	};
+};
 
 	auto stderr_logger = stderr_logger_new();
 	if (stderr_logger) {
