@@ -46,6 +46,17 @@ Assuming you already have all the usual building tools installed (e.g. gcc, pyth
 
 If libconfig >= 1.7 is not available on your system, meson will try to build it from git. In which case, you also need `cmake`, and `git`.
 
+```bash
+export C_INCLUDE_PATH=/usr/include
+export LIBRARY_PATH=/usr/lib
+```
+
+On arch:
+
+```bash
+sudo pacman -S --needed meson ninja gcc libev libconfig pcre2 libx11 libxcb xcb-util xcb-util-image xcb-util-renderutil pixman libepoxy libxcomposite libxdamage libxfixes libxext xcb-proto xorgproto dbus uthash cmake libev pkg-config base-devel
+```
+
 On Debian based distributions (e.g. Ubuntu), the needed packages are
 
 ```

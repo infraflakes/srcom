@@ -93,7 +93,7 @@ static bool layer_from_window(struct layer *out_layer, struct win *w, ivec2 size
 	}
 
 	if (srwm_active && srwm_zoom != 1.0f) {
-		if (w_opts.window_type != WINTYPE_DOCK && w_opts.window_type != WINTYPE_DESKTOP) {
+		if (!(w->window_types & (1U << WINTYPE_DOCK)) && !(w->window_types & (1U << WINTYPE_DESKTOP))) {
 			float wx = (float)out_layer->window.origin.x;
 			float wy = (float)out_layer->window.origin.y;
 			float cx = (float)srwm_cx;
