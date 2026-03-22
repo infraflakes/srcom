@@ -204,6 +204,14 @@ typedef struct session {
 	// === DBus related ===
 	struct cdbus_data *dbus_data;
 #endif
+
+	// === srwm canvas zoom ===
+	/// Current zoom level (1.0 = no zoom)
+	float srwm_zoom;
+	/// Screen center for zoom origin
+	int srwm_center_x, srwm_center_y;
+	/// Whether srwm canvas mode is active
+	bool srwm_canvas_active;
 } session_t;
 
 struct wintype_info {
@@ -254,3 +262,4 @@ static inline bool wid_has_prop(xcb_connection_t *c, xcb_window_t w, xcb_atom_t 
 }
 
 void force_repaint(session_t *ps);
+void srwm_read_canvas_state(session_t *ps);

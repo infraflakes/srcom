@@ -554,6 +554,14 @@ static inline void ev_property_notify(session_t *ps, xcb_property_notify_event_t
 			}
 		}
 
+		if (ev->atom == ps->atoms->a_SRWM_CANVAS_ZOOM ||
+		    ev->atom == ps->atoms->a_SRWM_CANVAS_CENTER_X ||
+		    ev->atom == ps->atoms->a_SRWM_CANVAS_CENTER_Y ||
+		    ev->atom == ps->atoms->a_SRWM_CANVAS_ACTIVE) {
+			srwm_read_canvas_state(ps);
+			force_repaint(ps);
+		}
+
 		// Unconcerned about any other properties on root window
 		return;
 	}

@@ -421,6 +421,40 @@ static void rebuild_screen_reg(session_t *ps) {
 	get_screen_region(ps, &ps->screen_reg);
 }
 
+void srwm_read_canvas_state(session_t *ps) {
+	winprop_t prop = x_get_prop(&ps->c, ps->c.screen_info->root,
+	                            ps->atoms->a_SRWM_CANVAS_ACTIVE, 1, XCB_ATOM_CARDINAL, 32);
+	if (prop.nitems) {
+		ps->srwm_canvas_active = (*prop.p32 != 0);
+	}
+	free_winprop(&prop);
+
+	prop = x_get_prop(&ps->c, ps->c.screen_info->root,
+	                  ps->atoms->a_SRWM_CANVAS_ZOOM, 1, XCB_ATOM_CARDINAL, 32);
+	if (prop.nitems) {
+		ps->srwm_zoom = (float)((int32_t)*prop.p32) / 10000.0f;
+		if (ps->srwm_zoom < 0.1f)
+			ps->srwm_zoom = 0.1f;
+		if (ps->srwm_zoom > 10.0f)
+			ps->srwm_zoom = 10.0f;
+	}
+	free_winprop(&prop);
+
+	prop = x_get_prop(&ps->c, ps->c.screen_info->root,
+	                  ps->atoms->a_SRWM_CANVAS_CENTER_X, 1, XCB_ATOM_CARDINAL, 32);
+	if (prop.nitems) {
+		ps->srwm_center_x = (int32_t)*prop.p32;
+	}
+	free_winprop(&prop);
+
+	prop = x_get_prop(&ps->c, ps->c.screen_info->root,
+	                  ps->atoms->a_SRWM_CANVAS_CENTER_Y, 1, XCB_ATOM_CARDINAL, 32);
+	if (prop.nitems) {
+		ps->srwm_center_y = (int32_t)*prop.p32;
+	}
+	free_winprop(&prop);
+}
+
 /// Free up all the images and deinit the backend
 static void destroy_backend(session_t *ps) {
 	wm_stack_foreach_safe(ps->wm, cursor, next_cursor) {
@@ -1717,7 +1751,9 @@ static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
 		}
 		layout_manager_append_layout(
 		    ps->layout_manager, ps->wm, ps->root_image_generation,
-		    (ivec2){.width = ps->root_width, .height = ps->root_height});
+		    (ivec2){.width = ps->root_width, .height = ps->root_height},
+		    ps->srwm_zoom, ps->srwm_center_x, ps->srwm_center_y,
+		    ps->srwm_canvas_active);
 		bool succeeded = renderer_render(
 		    ps->renderer, ps->backend_data, ps->root_image, &ps->root_image_extent,
 		    ps->layout_manager, ps->command_builder, ps->backend_blur_context,
@@ -1982,22 +2018,27 @@ static void show_config_warning_message_box(struct options *opt) {
 ///
 static session_t *session_init(int argc, char **argv, Display *dpy,
                                const char *config_file, bool all_xerrors, bool fork) {
-	static const session_t s_def = {
-	    .backend_data = NULL,
-	    .root_height = 0,
-	    .root_width = 0,
-	    // .root_damage = XCB_NONE,
-	    .overlay = XCB_NONE,
-	    .reg_win = XCB_NONE,
-	    .redirected = false,
-	    .fade_time = 0L,
-	    .quit = false,
+static const session_t s_def = {
+    .backend_data = NULL,
+    .root_height = 0,
+    .root_width = 0,
+    // .root_damage = XCB_NONE,
+    .overlay = XCB_NONE,
+    .reg_win = XCB_NONE,
+    .redirected = false,
+    .fade_time = 0L,
+    .quit = false,
 
-	    .last_msc = 0,
+    .last_msc = 0,
 
 #ifdef CONFIG_DBUS
-	    .dbus_data = NULL,
+    .dbus_data = NULL,
 #endif
+
+    .srwm_zoom = 1.0f,
+    .srwm_center_x = 0,
+    .srwm_center_y = 0,
+    .srwm_canvas_active = false,
 	};
 
 	auto stderr_logger = stderr_logger_new();
@@ -2276,7 +2317,10 @@ static session_t *session_init(int argc, char **argv, Display *dpy,
 	}
 	ps->root_width = r->width;
 	ps->root_height = r->height;
+	ps->srwm_center_x = ps->root_width / 2;
+	ps->srwm_center_y = ps->root_height / 2;
 	free(r);
+	srwm_read_canvas_state(ps);
 	rebuild_screen_reg(ps);
 
 	if (session_redirection_mode(ps) == XCB_COMPOSITE_REDIRECT_MANUAL && compositor_running) {
