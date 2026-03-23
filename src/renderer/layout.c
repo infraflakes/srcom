@@ -94,22 +94,9 @@ static bool layer_from_window(struct layer *out_layer, struct win *w, ivec2 size
 
 	if (srwm_active && srwm_zoom != 1.0f) {
 		if (!(w->window_types & (1U << WINTYPE_DOCK)) && !(w->window_types & (1U << WINTYPE_DESKTOP))) {
-			float wx = (float)out_layer->window.origin.x;
-			float wy = (float)out_layer->window.origin.y;
-			float cx = (float)srwm_cx;
-			float cy = (float)srwm_cy;
-			float new_x = cx + (wx - cx) * srwm_zoom;
-			float new_y = cy + (wy - cy) * srwm_zoom;
-			out_layer->window.origin = (ivec2){(int)new_x, (int)new_y};
 			out_layer->scale.x *= srwm_zoom;
 			out_layer->scale.y *= srwm_zoom;
 			if (w_opts.shadow) {
-				float sx = (float)out_layer->shadow.origin.x;
-				float sy = (float)out_layer->shadow.origin.y;
-				out_layer->shadow.origin = (ivec2){
-				    (int)(cx + (sx - cx) * srwm_zoom),
-				    (int)(cy + (sy - cy) * srwm_zoom)
-				};
 				out_layer->shadow_scale.x *= srwm_zoom;
 				out_layer->shadow_scale.y *= srwm_zoom;
 			}
