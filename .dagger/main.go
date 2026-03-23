@@ -26,7 +26,7 @@ func (m *Srcom) Build(ctx context.Context, source *dagger.Directory) *dagger.Fil
 		}).
 		WithDirectory("/src", source.WithoutDirectory("build")).
 		WithWorkdir("/src").
-		WithExec([]string{"meson", "setup", "build", "--buildtype=release", "-Ddefault_library=static", "-Ddbus=false"}).
+		WithExec([]string{"meson", "setup", "build", "--buildtype=release", "--default-library=static", "-Ddbus=false"}).
 		WithExec([]string{"ninja", "-C", "build"}).
 		File("build/src/srcom")
 }
