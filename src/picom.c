@@ -1809,6 +1809,15 @@ static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
 		    (ivec2){.width = ps->root_width, .height = ps->root_height},
 		    ps->srwm_zoom, ps->srwm_center_x, ps->srwm_center_y,
 		    ps->srwm_canvas_active);
+		    if (ps->software_cursor_active) {
+			auto pointer = xcb_query_pointer_reply(
+			ps->c.c, xcb_query_pointer(ps->c.c, ps->c.screen_info->root), NULL);
+			if (pointer) {
+				ps->cursor_x = pointer->root_x;
+				ps->cursor_y = pointer->root_y;
+				free(pointer);
+			}
+		    }
 		bool succeeded = renderer_render(
 		    ps->renderer, ps->backend_data, ps->root_image, &ps->root_image_extent,
 		    ps->layout_manager, ps->command_builder, ps->backend_blur_context,
@@ -1822,9 +1831,6 @@ static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
 			abort();
 		}
 		did_render = true;
-		if (ps->software_cursor_active) {
-			force_repaint(ps);
-		}
 		if (ps->next_render > 0) {
 			log_verbose("Render schedule deviation: %ld us (%s) %" PRIu64
 			            " %" PRIu64,
@@ -1861,7 +1867,7 @@ static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
 
 	// Queue redraw if animation is running. This should be picked up by next present
 	// event.
-	if (animation) {
+	if (animation || ps->software_cursor_active) {
 		queue_redraw(ps);
 	} else {
 		ps->fade_time = 0L;
