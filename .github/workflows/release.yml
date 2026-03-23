@@ -1,0 +1,53 @@
+name: srcom Release  
+  
+on:  
+  push:  
+    tags:  
+      - 'v*'  
+  
+jobs:  
+  build-and-release:  
+    runs-on: ubuntu-20.04   # glibc 2.31 -- maximum compat  
+    permissions:  
+      contents: write  
+    steps:  
+      - uses: actions/checkout@v4  
+        with:  
+          fetch-depth: 0  
+  
+      - name: Install dependencies  
+        run: |  
+          sudo apt-get update  
+          sudo apt-get install -y \  
+            meson ninja-build gcc pkg-config \  
+            libx11-dev libxcb1-dev libxcb-composite0-dev libxcb-damage0-dev \  
+            libxcb-dpms0-dev libxcb-glx0-dev libxcb-image0-dev libxcb-present-dev \  
+            libxcb-randr0-dev libxcb-render0-dev libxcb-render-util0-dev \  
+            libxcb-shape0-dev libxcb-xfixes0-dev libxcb-xinerama0-dev \  
+            libxcb-ewmh-dev libxcb-icccm4-dev \  
+            libgl-dev libegl-dev libepoxy-dev \  
+            libev-dev libpcre2-dev libpixman-1-dev \  
+            libconfig-dev libdbus-1-dev \  
+            uthash-dev  
+  
+      - name: Build  
+        run: |  
+          meson setup build --buildtype=release \  
+            --prefer-static \  
+            -Ddbus=false  
+          ninja -C build  
+  
+      - name: Package  
+        run: |  
+          mkdir -p dist  
+          BINARY_NAME="srcom-${{ github.ref_name }}-linux-amd64"  
+          cp build/src/srcom "dist/$BINARY_NAME"  
+          cd dist && sha256sum "$BINARY_NAME" > "$BINARY_NAME.sha256"  
+  
+      - name: Release  
+        uses: softprops/action-gh-release@v2  
+        with:  
+          files: dist/*  
+          generate_release_notes: true  
+          draft: false  
+          prerelease: false
