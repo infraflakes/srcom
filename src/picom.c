@@ -1802,15 +1802,7 @@ static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
 			reset_enable(ps->loop, NULL, 0);
 			return;
 		}
-		if (ps->software_cursor_active) {
-			auto pointer = xcb_query_pointer_reply(ps->c.c, xcb_query_pointer(ps->c.c, ps->c.screen_info->root), NULL);
-			if (pointer) {
-				ps->cursor_x = pointer->root_x;
-				ps->cursor_y = pointer->root_y;
-				free(pointer);
-			}
-			force_repaint(ps);
-		}
+		// No need to query pointer here - cursor_x/cursor_y are updated via MotionNotify events	
 
 		layout_manager_append_layout(
 		    ps->layout_manager, ps->wm, ps->root_image_generation,
@@ -2366,8 +2358,8 @@ static const session_t s_def = {
 	    ps->c.c, xcb_change_window_attributes_checked(
 	                 ps->c.c, ps->c.screen_info->root, XCB_CW_EVENT_MASK,
 	                 (const uint32_t[]){XCB_EVENT_MASK_SUBSTRUCTURE_NOTIFY |
-	                                    XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY |
-	                                    XCB_EVENT_MASK_PROPERTY_CHANGE}));
+					    XCB_EVENT_MASK_EXPOSURE | XCB_EVENT_MASK_STRUCTURE_NOTIFY |
+                                            XCB_EVENT_MASK_PROPERTY_CHANGE | XCB_EVENT_MASK_POINTER_MOTION}));
 	if (e) {
 		log_error_x_error(&ps->c, e, "Failed to setup root window event mask");
 		free(e);
