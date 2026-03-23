@@ -1206,6 +1206,7 @@ bool gl_init(struct gl_data *gd, session_t *ps) {
 	gd->cursor_shader.uniform_bitmask = (uint32_t)-1;
 	glUseProgram(gd->cursor_shader.prog);
 	glUniform1i(UNIFORM_TEX_LOC, 0);
+	glUniformMatrix4fv(UNIFORM_PROJECTION_LOC, 1, false, projection_matrix[0]);
 	glUseProgram(0);
 
 	gl_check_err();
@@ -1281,7 +1282,6 @@ void gl_draw_software_cursor(struct gl_data *gd) {
 	GLint saved_viewport[4];
 	glGetIntegerv(GL_VIEWPORT, saved_viewport);
 
-	glViewport(0, 0, gd->back_image.width, gd->back_image.height);
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
 
