@@ -1821,7 +1821,7 @@ static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
 		bool succeeded = renderer_render(
 		    ps->renderer, ps->backend_data, ps->root_image, &ps->root_image_extent,
 		    ps->layout_manager, ps->command_builder, ps->backend_blur_context,
-		    render_start_us, ps->sync_fence, ps->o.use_damage, ps->o.monitor_repaint,
+		    render_start_us, ps->sync_fence, ps->o.use_damage && !ps->software_cursor_active, ps->o.monitor_repaint,
 		    ps->o.force_win_blend, ps->o.blur_background_frame,
 		    ps->o.inactive_dim_fixed, ps->o.max_brightness,
 		    ps->o.crop_shadow_to_monitor ? &ps->monitors : NULL,

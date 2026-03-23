@@ -92,16 +92,30 @@ static bool layer_from_window(struct layer *out_layer, struct win *w, ivec2 size
 		out_layer->shadow_scale = SCALE_IDENTITY;
 	}
 
-	if (srwm_active && srwm_zoom != 1.0f) {
-		if (!(w->window_types & (1U << WINTYPE_DOCK)) && !(w->window_types & (1U << WINTYPE_DESKTOP))) {
-			out_layer->scale.x *= srwm_zoom;
-			out_layer->scale.y *= srwm_zoom;
-			if (w_opts.shadow) {
-				out_layer->shadow_scale.x *= srwm_zoom;
-				out_layer->shadow_scale.y *= srwm_zoom;
-			}
-		}
-	}
+	if (srwm_active && srwm_zoom != 1.0f) {  
+    if (!(w->window_types & (1U << WINTYPE_DOCK)) && !(w->window_types & (1U << WINTYPE_DESKTOP))) {  
+        float wx = (float)out_layer->window.origin.x;  
+        float wy = (float)out_layer->window.origin.y;  
+        float cx = (float)srwm_cx;  
+        float cy = (float)srwm_cy;  
+        out_layer->window.origin = (ivec2){  
+            (int)(cx + (wx - cx) * srwm_zoom),  
+            (int)(cy + (wy - cy) * srwm_zoom)  
+        };  
+        out_layer->scale.x *= srwm_zoom;  
+        out_layer->scale.y *= srwm_zoom;  
+        if (w_opts.shadow) {  
+            float sx = (float)out_layer->shadow.origin.x;  
+            float sy = (float)out_layer->shadow.origin.y;  
+            out_layer->shadow.origin = (ivec2){  
+                (int)(cx + (sx - cx) * srwm_zoom),  
+                (int)(cy + (sy - cy) * srwm_zoom)  
+            };  
+            out_layer->shadow_scale.x *= srwm_zoom;  
+            out_layer->shadow_scale.y *= srwm_zoom;  
+        }  
+    }  
+}
 
 	struct ibox window_scaled = {
 	    .origin = out_layer->window.origin,
