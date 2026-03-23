@@ -9,8 +9,8 @@
 #include <xcb/render.h>
 #include <xcb/xcb.h>
 
-#include <picom/backend.h>
-#include <picom/types.h>
+#include <srcom/backend.h>
+#include <srcom/types.h>
 
 #include "c2.h"
 #include "compiler.h"

@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) Yuxuan Shui <yshuiv7@gmail.com>
 
-#include <picom/backend.h>
+#include <srcom/backend.h>
 
 #include "backend/backend.h"
 #include "common.h"

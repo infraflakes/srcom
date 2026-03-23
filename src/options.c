@@ -25,49 +25,49 @@
 
 #pragma GCC diagnostic error "-Wunused-parameter"
 
-struct picom_option;
+struct srcom_option;
 
-struct picom_arg {
+struct srcom_arg {
 	const char *name;
 	ptrdiff_t offset;
 
 	const void *user_data;
-	bool (*handler)(const struct picom_option *, const struct picom_arg *,
+	bool (*handler)(const struct srcom_option *, const struct srcom_arg *,
 	                const char *optarg, void *output);
 };
 
-struct picom_arg_parser {
+struct srcom_arg_parser {
 	int (*parse)(const char *);
 	int invalid_value;
 };
 
-struct picom_rules_parser {
+struct srcom_rules_parser {
 	void *(*parse_prefix)(const char *, const char **end, void *data);
 	void (*free_value)(void *);
 	void *user_data;
 };
 
-struct picom_deprecated_arg {
+struct srcom_deprecated_arg {
 	const char *message;
-	struct picom_arg inner;
+	struct srcom_arg inner;
 	bool error;
 };
 
-struct picom_option {
+struct srcom_option {
 	const char *long_name;
 	int has_arg;
-	struct picom_arg arg;
+	struct srcom_arg arg;
 	const char *help;
 	const char *argv0;
 };
 
-static bool set_flag(const struct picom_option * /*opt*/, const struct picom_arg *arg,
+static bool set_flag(const struct srcom_option * /*opt*/, const struct srcom_arg *arg,
                      const char * /*arg_str*/, void *output) {
 	*(bool *)(output + arg->offset) = true;
 	return true;
 }
 
-static bool set_rule_flag(const struct picom_option *arg_opt, const struct picom_arg *arg,
+static bool set_rule_flag(const struct srcom_option *arg_opt, const struct srcom_arg *arg,
                           const char * /*arg_str*/, void *output) {
 	auto opt = (struct options *)output;
 	if (!list_is_empty(&opt->rules)) {
@@ -77,15 +77,15 @@ static bool set_rule_flag(const struct picom_option *arg_opt, const struct picom
 	*(bool *)(output + arg->offset) = true;
 	return true;
 }
-static bool unset_flag(const struct picom_option * /*opt*/, const struct picom_arg *arg,
+static bool unset_flag(const struct srcom_option * /*opt*/, const struct srcom_arg *arg,
                        const char * /*arg_str*/, void *output) {
 	*(bool *)(output + arg->offset) = false;
 	return true;
 }
 
-static bool parse_with(const struct picom_option *opt, const struct picom_arg *arg,
+static bool parse_with(const struct srcom_option *opt, const struct srcom_arg *arg,
                        const char *arg_str, void *output) {
-	const struct picom_arg_parser *parser = arg->user_data;
+	const struct srcom_arg_parser *parser = arg->user_data;
 	int *dst = (int *)(output + arg->offset);
 	*dst = parser->parse(arg_str);
 	if (*dst == parser->invalid_value) {
@@ -95,7 +95,7 @@ static bool parse_with(const struct picom_option *opt, const struct picom_arg *a
 	return true;
 }
 
-static bool store_float(const struct picom_option *opt, const struct picom_arg *arg,
+static bool store_float(const struct srcom_option *opt, const struct srcom_arg *arg,
                         const char *arg_str, void *output) {
 	double *dst = (double *)(output + arg->offset);
 	const double *minmax = (const double *)arg->user_data;
@@ -110,7 +110,7 @@ static bool store_float(const struct picom_option *opt, const struct picom_arg *
 	return true;
 }
 
-static bool store_rule_float(const struct picom_option *arg_opt, const struct picom_arg *arg,
+static bool store_rule_float(const struct srcom_option *arg_opt, const struct srcom_arg *arg,
                              const char *arg_str, void *output) {
 	auto opt = (struct options *)output;
 	if (!list_is_empty(&opt->rules)) {
@@ -120,7 +120,7 @@ static bool store_rule_float(const struct picom_option *arg_opt, const struct pi
 	return store_float(arg_opt, arg, arg_str, output);
 }
 
-static bool store_int(const struct picom_option *opt, const struct picom_arg *arg,
+static bool store_int(const struct srcom_option *opt, const struct srcom_arg *arg,
                       const char *arg_str, void *output) {
 	const int *minmax = (const int *)arg->user_data;
 	int *dst = (int *)(output + arg->offset);
@@ -133,7 +133,7 @@ static bool store_int(const struct picom_option *opt, const struct picom_arg *ar
 	return true;
 }
 
-static bool store_string(const struct picom_option * /*opt*/, const struct picom_arg *arg,
+static bool store_string(const struct srcom_option * /*opt*/, const struct srcom_arg *arg,
                          const char *arg_str, void *output) {
 	char **dst = (char **)(output + arg->offset);
 	free(*dst);
@@ -141,7 +141,7 @@ static bool store_string(const struct picom_option * /*opt*/, const struct picom
 	return true;
 }
 
-static bool store_shader(const struct picom_option *opt, const struct picom_arg *arg,
+static bool store_shader(const struct srcom_option *opt, const struct srcom_arg *arg,
                          const char *arg_str, void *output) {
 	scoped_charp cwd = getcwd(NULL, 0);
 	scoped_charp full_path = locate_auxiliary_file("shaders", arg_str, cwd);
@@ -157,7 +157,7 @@ static bool store_shader(const struct picom_option *opt, const struct picom_arg 
 }
 
 static bool
-store_fixed_string(const struct picom_option * /*opt*/, const struct picom_arg *arg,
+store_fixed_string(const struct srcom_option * /*opt*/, const struct srcom_arg *arg,
                    const char * /*arg_str*/, void *output) {
 	char **dst = (char **)(output + arg->offset);
 	free(*dst);
@@ -165,9 +165,9 @@ store_fixed_string(const struct picom_option * /*opt*/, const struct picom_arg *
 	return true;
 }
 
-static bool store_rules(const struct picom_option *arg_opt, const struct picom_arg *arg,
+static bool store_rules(const struct srcom_option *arg_opt, const struct srcom_arg *arg,
                         const char *arg_str, void *output) {
-	const struct picom_rules_parser *parser = arg->user_data;
+	const struct srcom_rules_parser *parser = arg->user_data;
 	struct options *opt = (struct options *)output;
 	if (!list_is_empty(&opt->rules)) {
 		log_warn_both_style_of_rules(opt, arg_opt->long_name);
@@ -190,26 +190,26 @@ static bool store_rules(const struct picom_option *arg_opt, const struct picom_a
 	return succeeded;
 }
 
-static bool store_fixed_enum(const struct picom_option * /*opt*/, const struct picom_arg *arg,
+static bool store_fixed_enum(const struct srcom_option * /*opt*/, const struct srcom_arg *arg,
                              const char * /*arg_str*/, void *output) {
 	const int *value = (const int *)arg->user_data;
 	*(int *)(output + arg->offset) = *value;
 	return true;
 }
 
-static bool noop(const struct picom_option * /*opt*/, const struct picom_arg * /*arg*/,
+static bool noop(const struct srcom_option * /*opt*/, const struct srcom_arg * /*arg*/,
                  const char * /*arg_str*/, void * /*output*/) {
 	return true;
 }
 
-static bool reject(const struct picom_option * /*opt*/, const struct picom_arg * /*arg*/,
+static bool reject(const struct srcom_option * /*opt*/, const struct srcom_arg * /*arg*/,
                    const char * /*arg_str*/, void * /*output*/) {
 	return false;
 }
 
-static bool say_deprecated(const struct picom_option *opt, const struct picom_arg *arg,
+static bool say_deprecated(const struct srcom_option *opt, const struct srcom_arg *arg,
                            const char *arg_str, void *output) {
-	const struct picom_deprecated_arg *deprecation = arg->user_data;
+	const struct srcom_deprecated_arg *deprecation = arg->user_data;
 	report_deprecated_option(output, opt->long_name, deprecation->error);
 	return deprecation->inner.handler(opt, &deprecation->inner, arg_str, output);
 }
@@ -251,7 +251,7 @@ static bool say_deprecated(const struct picom_option *opt, const struct picom_ar
 #define PARSE_WITH(fn, invalid, member)                                                  \
 	required_argument, {                                                             \
 		.offset = OFFSET(member), .handler = parse_with,                         \
-		.user_data = (struct picom_arg_parser[]){{                               \
+		.user_data = (struct srcom_arg_parser[]){{                               \
 		    .invalid_value = (invalid),                                          \
 		    .parse = (fn),                                                       \
 		}},                                                                      \
@@ -292,7 +292,7 @@ static bool say_deprecated(const struct picom_option *opt, const struct picom_ar
 #define NAMED_RULES(member, name_, ...)                                                  \
 	required_argument, {                                                             \
 		.offset = OFFSET(member), .handler = store_rules, .name = (name_),       \
-		.user_data = (struct picom_rules_parser[]) {                             \
+		.user_data = (struct srcom_rules_parser[]) {                             \
 			__VA_ARGS__                                                      \
 		}                                                                        \
 	}
@@ -314,7 +314,7 @@ static bool say_deprecated(const struct picom_option *opt, const struct picom_ar
 
 #define SAY_DEPRECATED_(error_, msg, has_arg, ...)                                        \
 	has_arg, {                                                                        \
-		.handler = say_deprecated, .user_data = (struct picom_deprecated_arg[]) { \
+		.handler = say_deprecated, .user_data = (struct srcom_deprecated_arg[]) { \
 			{.message = (msg), .inner = __VA_ARGS__, .error = error_},        \
 		}                                                                         \
 	}
@@ -332,7 +332,7 @@ static bool say_deprecated(const struct picom_option *opt, const struct picom_ar
 #define ERROR_DEPRECATED(has_arg) SAY_DEPRECATED(true, "", REJECT(has_arg))
 
 static bool
-store_shadow_color(const struct picom_option * /*opt*/, const struct picom_arg * /*arg*/,
+store_shadow_color(const struct srcom_option * /*opt*/, const struct srcom_arg * /*arg*/,
                    const char *arg_str, void *output) {
 	struct options *opt = (struct options *)output;
 	struct color rgb;
@@ -344,7 +344,7 @@ store_shadow_color(const struct picom_option * /*opt*/, const struct picom_arg *
 }
 
 static bool
-store_blur_kern(const struct picom_option * /*opt*/, const struct picom_arg * /*arg*/,
+store_blur_kern(const struct srcom_option * /*opt*/, const struct srcom_arg * /*arg*/,
                 const char *arg_str, void *output) {
 	struct options *opt = (struct options *)output;
 	opt->blur_kerns = parse_blur_kern_lst(arg_str, &opt->blur_kernel_count);
@@ -352,7 +352,7 @@ store_blur_kern(const struct picom_option * /*opt*/, const struct picom_arg * /*
 }
 
 static bool
-store_benchmark_wid(const struct picom_option * /*opt*/, const struct picom_arg * /*arg*/,
+store_benchmark_wid(const struct srcom_option * /*opt*/, const struct srcom_arg * /*arg*/,
                     const char *arg_str, void *output) {
 	struct options *opt = (struct options *)output;
 	const char *endptr = NULL;
@@ -364,7 +364,7 @@ store_benchmark_wid(const struct picom_option * /*opt*/, const struct picom_arg 
 	return true;
 }
 
-static bool store_backend(const struct picom_option * /*opt*/, const struct picom_arg * /*arg*/,
+static bool store_backend(const struct srcom_option * /*opt*/, const struct srcom_arg * /*arg*/,
                           const char *arg_str, void *output) {
 	struct options *opt = (struct options *)output;
 	opt->backend = backend_find(arg_str);
@@ -386,7 +386,7 @@ static bool store_backend(const struct picom_option * /*opt*/, const struct pico
 
 // clang-format off
 static const struct option *longopts = NULL;
-static const struct picom_option picom_options[] = {
+static const struct srcom_option srcom_options[] = {
     // As you can see, aligning this table is difficult...
 
     // Rejected options, we shouldn't be able to reach `get_cfg` when these are set
@@ -467,13 +467,13 @@ static const struct picom_option picom_options[] = {
     [800] = {"monitor-repaint"          , ENABLE(monitor_repaint)          , "Highlight the updated area of the screen. For debugging."},
     [801] = {"diagnostics"              , ENABLE(print_diagnostics)        , "Print diagnostic information"},
     [802] = {"debug-mode"               , ENABLE(debug_mode)               , "Render into a separate window, and don't take over the screen. Useful when "
-                                                                             "you want to attach a debugger to picom"},
+                                                                             "you want to attach a debugger to srcom"},
     [803] = {"no-ewmh-fullscreen"       , ENABLE(no_ewmh_fullscreen)       , "Do not use EWMH to detect fullscreen windows. Reverts to checking if a "
                                                                              "window is fullscreen based only on its size and coordinates."},
     [804] = {"realtime"                 , ENABLE(use_realtime_scheduling)  , "Enable realtime scheduling. This might reduce latency, but might also cause "
                                                                              "other issues. Disable this if you see the compositor being killed."},
-    [805] = {"monitor"                  , ENABLE(inspect_monitor)          , "For picom-inspect, run in a loop and dump information every time something "
-                                                                             "changed about a window.", "picom-inspect"},
+    [805] = {"monitor"                  , ENABLE(inspect_monitor)          , "For srcom-inspect, run in a loop and dump information every time something "
+                                                                             "changed about a window.", "srcom-inspect"},
 
     // Flags that takes an argument
     ['r'] = {"shadow-radius"               , INTEGER(shadow_radius, 0, INT_MAX)             , "The blur radius for shadows. (default 12)"},
@@ -553,14 +553,14 @@ static const struct picom_option picom_options[] = {
 // clang-format on
 
 static void setup_longopts(void) {
-	auto opts = ccalloc(ARR_SIZE(picom_options) + 1, struct option);
+	auto opts = ccalloc(ARR_SIZE(srcom_options) + 1, struct option);
 	int option_count = 0;
-	for (size_t i = 0; i < ARR_SIZE(picom_options); i++) {
-		if (picom_options[i].arg.handler == NULL) {
+	for (size_t i = 0; i < ARR_SIZE(srcom_options); i++) {
+		if (srcom_options[i].arg.handler == NULL) {
 			continue;
 		}
-		opts[option_count].name = picom_options[i].long_name;
-		opts[option_count].has_arg = picom_options[i].has_arg;
+		opts[option_count].name = srcom_options[i].long_name;
+		opts[option_count].has_arg = srcom_options[i].has_arg;
 		opts[option_count].flag = NULL;
 		opts[option_count].val = (int)i;
 		option_count++;
@@ -622,9 +622,9 @@ void print_help(const char *help, size_t indent, size_t curr_indent, size_t line
  */
 static void usage(const char *argv0, int ret) {
 	FILE *f = (ret ? stderr : stdout);
-	fprintf(f, "picom " PICOM_FULL_VERSION "\n");
+	fprintf(f, "srcom " PICOM_FULL_VERSION "\n");
 	fprintf(f, "Standalone X11 compositor\n");
-	fprintf(f, "Please report bugs to https://github.com/yshui/picom\n\n");
+	fprintf(f, "Please report bugs to https://github.com/yshui/srcom\n\n");
 
 	fprintf(f, "Usage: %s [OPTION]...\n\n", argv0);
 	fprintf(f, "OPTIONS:\n");
@@ -638,19 +638,19 @@ static void usage(const char *argv0, int ret) {
 	const char *basename = strrchr(argv0, '/') ? strrchr(argv0, '/') + 1 : argv0;
 
 	size_t help_indent = 0;
-	for (size_t i = 0; i < ARR_SIZE(picom_options); i++) {
-		if (picom_options[i].help == NULL) {
+	for (size_t i = 0; i < ARR_SIZE(srcom_options); i++) {
+		if (srcom_options[i].help == NULL) {
 			// Hide options with no help message.
 			continue;
 		}
-		if (picom_options[i].argv0 != NULL &&
-		    strcmp(picom_options[i].argv0, basename) != 0) {
+		if (srcom_options[i].argv0 != NULL &&
+		    strcmp(srcom_options[i].argv0, basename) != 0) {
 			// Hide options that are not for this program.
 			continue;
 		}
-		auto option_len = strlen(picom_options[i].long_name) + 2 + 4;
-		if (picom_options[i].arg.name) {
-			option_len += strlen(picom_options[i].arg.name) + 1;
+		auto option_len = strlen(srcom_options[i].long_name) + 2 + 4;
+		if (srcom_options[i].arg.name) {
+			option_len += strlen(srcom_options[i].arg.name) + 1;
 		}
 		if (option_len > help_indent && option_len < 30) {
 			help_indent = option_len;
@@ -658,12 +658,12 @@ static void usage(const char *argv0, int ret) {
 	}
 	help_indent += 6;
 
-	for (size_t i = 0; i < ARR_SIZE(picom_options); i++) {
-		if (picom_options[i].help == NULL) {
+	for (size_t i = 0; i < ARR_SIZE(srcom_options); i++) {
+		if (srcom_options[i].help == NULL) {
 			continue;
 		}
-		if (picom_options[i].argv0 != NULL &&
-		    strcmp(picom_options[i].argv0, basename) != 0) {
+		if (srcom_options[i].argv0 != NULL &&
+		    strcmp(srcom_options[i].argv0, basename) != 0) {
 			// Hide options that are not for this program.
 			continue;
 		}
@@ -674,15 +674,15 @@ static void usage(const char *argv0, int ret) {
 		} else {
 			fprintf(f, "    ");
 		}
-		fprintf(f, "--%s", picom_options[i].long_name);
-		option_len += strlen(picom_options[i].long_name) + 2;
-		if (picom_options[i].arg.name) {
-			fprintf(f, "=%s", picom_options[i].arg.name);
-			option_len += strlen(picom_options[i].arg.name) + 1;
+		fprintf(f, "--%s", srcom_options[i].long_name);
+		option_len += strlen(srcom_options[i].long_name) + 2;
+		if (srcom_options[i].arg.name) {
+			fprintf(f, "=%s", srcom_options[i].arg.name);
+			option_len += strlen(srcom_options[i].arg.name) + 1;
 		}
 		fprintf(f, "  ");
 		option_len += 2;
-		print_help(picom_options[i].help, help_indent, option_len,
+		print_help(srcom_options[i].help, help_indent, option_len,
 		           (size_t)line_wrap, f);
 	}
 }
@@ -791,7 +791,7 @@ bool get_early_config(int argc, char *const *argv, char **config_file, bool *all
 	// Check for abundant positional arguments
 	if (optind < argc) {
 		// log is not initialized here yet
-		fprintf(stderr, "picom doesn't accept positional arguments.\n");
+		fprintf(stderr, "srcom doesn't accept positional arguments.\n");
 		goto err;
 	}
 
@@ -869,15 +869,15 @@ bool get_cfg(options_t *opt, int argc, char *const *argv) {
 	optind = 1;
 	const char *basename = strrchr(argv[0], '/') ? strrchr(argv[0], '/') + 1 : argv[0];
 	while (-1 != (o = getopt_long(argc, argv, shortopts, longopts, &longopt_idx))) {
-		if (o == '?' || o == ':' || picom_options[o].arg.handler == NULL) {
+		if (o == '?' || o == ':' || srcom_options[o].arg.handler == NULL) {
 			usage(argv[0], 1);
 			failed = true;
-		} else if (picom_options[o].argv0 != NULL &&
-		           strcmp(picom_options[o].argv0, basename) != 0) {
+		} else if (srcom_options[o].argv0 != NULL &&
+		           strcmp(srcom_options[o].argv0, basename) != 0) {
 			log_error("Invalid option %s", argv[optind - 1]);
 			failed = true;
-		} else if (!picom_options[o].arg.handler(
-		               &picom_options[o], &picom_options[o].arg, optarg, opt)) {
+		} else if (!srcom_options[o].arg.handler(
+		               &srcom_options[o], &srcom_options[o].arg, optarg, opt)) {
 			failed = true;
 		}
 

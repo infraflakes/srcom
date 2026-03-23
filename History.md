@@ -8,7 +8,7 @@ And also to try to fix bugs.
 
 ## Rename
 
-In 2019 the project name was changed from Compton to picom (git revision 8ddbeb and following).
+In 2019 the project name was changed from Compton to srcom (git revision 8ddbeb and following).
 
 ### Rationale
 
@@ -26,7 +26,7 @@ The criteria for a good name were
 
 Of course, choosing a name is never easy, and there is no apparent way to objectively evaluate the names. Yet, we have to solve the aforementioned problems as soon as possible.
 
-In the end, we picked `picom` (a portmanteau of `pico` and `composite`) as our new name. This name might not be perfect, but is what we will move forward with unless there's a compelling reason not to.
+In the end, we picked `srcom` (a portmanteau of `pico` and `composite`) as our new name. This name might not be perfect, but is what we will move forward with unless there's a compelling reason not to.
 
 
 # Compton

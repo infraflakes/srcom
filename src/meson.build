@@ -16,12 +16,12 @@ srcs = [
 		'inspect.c',
 		'log.c',
 		'options.c',
-		'picom.c',
+		'srcom.c',
 		'vblank.c',
 		'x.c',
 	),
 ]
-picom_inc = include_directories(['.', '../include'])
+srcom_inc = include_directories(['.', '../include'])
 
 cflags = []
 
@@ -136,28 +136,28 @@ libtools = static_library(
 		'transition/curve.c',
 		'transition/script.c',
 	],
-	include_directories: picom_inc,
+	include_directories: srcom_inc,
 	dependencies: [test_h_dep],
 	install: false,
 	build_by_default: false,
 )
 
-picom = executable(
-	'picom',
+srcom = executable(
+	'srcom',
 	srcs,
 	c_args: cflags,
 	dependencies: [base_deps, deps, test_h_dep] + dl_dep,
 	install: true,
-	include_directories: picom_inc,
+	include_directories: srcom_inc,
 	export_dynamic: true,
 	gnu_symbol_visibility: 'hidden',
 )
 
 if get_option('unittest')
-	test('picom unittest', picom, args: ['--unittest'])
+	test('srcom unittest', srcom, args: ['--unittest'])
 endif
 
-install_symlink('picom-inspect', install_dir: 'bin', pointing_to: 'picom')
+install_symlink('srcom-inspect', install_dir: 'bin', pointing_to: 'srcom')
 
 if cc.has_argument('-fsanitize=fuzzer')
 	c2_fuzz = executable(
@@ -168,6 +168,6 @@ if cc.has_argument('-fsanitize=fuzzer')
 		dependencies: [base_deps, deps, test_h_dep],
 		build_by_default: false,
 		install: false,
-		include_directories: picom_inc,
+		include_directories: srcom_inc,
 	)
 endif

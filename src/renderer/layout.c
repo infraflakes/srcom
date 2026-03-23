@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <uthash.h>
 
-#include <picom/types.h>
+#include <srcom/types.h>
 
 #include "command_builder.h"
 #include "common.h"

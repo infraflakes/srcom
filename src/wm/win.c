@@ -16,7 +16,7 @@
 #include <xcb/xcb.h>
 #include <xcb/xcb_renderutil.h>
 
-#include <picom/types.h>
+#include <srcom/types.h>
 
 #include "atom.h"
 #include "c2.h"
@@ -26,7 +26,7 @@
 #include "dbus.h"
 #include "inspect.h"
 #include "log.h"
-#include "picom.h"
+#include "srcom.h"
 #include "region.h"
 #include "utils/console.h"
 #include "utils/misc.h"

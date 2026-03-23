@@ -15,7 +15,7 @@
 #include "compiler.h"
 #include "config.h"
 #include "log.h"
-#include "picom.h"
+#include "srcom.h"
 #include "utils/misc.h"
 #include "x.h"
 

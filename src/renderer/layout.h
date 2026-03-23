@@ -6,7 +6,7 @@
 #include <stdint.h>
 #include <xcb/xproto.h>
 
-#include <picom/types.h>
+#include <srcom/types.h>
 
 #include "config.h"
 #include "region.h"

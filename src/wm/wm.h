@@ -18,7 +18,7 @@
 #include <uthash.h>
 #include <xcb/xproto.h>
 
-#include <picom/types.h>
+#include <srcom/types.h>
 
 #include "compiler.h"
 

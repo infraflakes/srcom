@@ -43,7 +43,7 @@ static inline int lcfg_lookup_bool(const config_t *config, const char *path, boo
 
 /// Search for config file under a base directory
 FILE *open_config_file_at(const char *base, char **out_path) {
-	static const char *config_paths[] = {"/picom.conf", "/picom/picom.conf",
+	static const char *config_paths[] = {"/srcom.conf", "/srcom/srcom.conf",
 	                                     "/compton.conf", "/compton/compton.conf"};
 	for (size_t i = 0; i < ARR_SIZE(config_paths); i++) {
 		char *path = mstrjoin(base, config_paths[i]);
@@ -55,10 +55,10 @@ FILE *open_config_file_at(const char *base, char **out_path) {
 		}
 		if (ret) {
 			if (strstr(config_paths[i], "compton")) {
-				log_warn("This compositor has been renamed to \"picom\", "
+				log_warn("This compositor has been renamed to \"srcom\", "
 				         "the old config file paths is deprecated. "
 				         "Please replace the \"compton\"s in the path "
-				         "with \"picom\"");
+				         "with \"srcom\"");
 			}
 			return ret;
 		}

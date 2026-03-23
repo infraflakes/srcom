@@ -1,4 +1,4 @@
-project('picom', 'c', version: '13',
+project('srcom', 'c', version: '13',
         default_options: ['c_std=c11', 'warning_level=1'])
 
 cc = meson.get_compiler('c')
@@ -70,7 +70,7 @@ if get_option('modularize')
 	add_global_arguments(['-fmodules',
 	                      '-fmodule-map-file='+
 	                      meson.current_source_dir()+
-	                      '/src/picom.modulemap'],
+	                      '/src/srcom.modulemap'],
 	                     language: 'c')
 endif
 
@@ -109,17 +109,17 @@ subdir('man')
 subdir('tools')
 subdir('include')
 
-install_data('bin/picom-trans', install_dir: get_option('bindir'))
-install_data('picom.desktop', install_dir: 'share/applications')
-install_data('picom.desktop', install_dir: get_option('sysconfdir') / 'xdg' / 'autostart')
+install_data('bin/srcom-trans', install_dir: get_option('bindir'))
+install_data('srcom.desktop', install_dir: 'share/applications')
+install_data('srcom.desktop', install_dir: get_option('sysconfdir') / 'xdg' / 'autostart')
 
 pkgconf = import('pkgconfig')
 
-picom_pc = pkgconf.generate(
-  name: 'picom-api',
-  description: 'picom API headers',
+srcom_pc = pkgconf.generate(
+  name: 'srcom-api',
+  description: 'srcom API headers',
   requires: [ 'pixman-1', 'xcb' ],
-  subdirs: 'picom',
+  subdirs: 'srcom',
 )
 
 if get_option('compton')

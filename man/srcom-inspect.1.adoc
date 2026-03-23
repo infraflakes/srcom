@@ -1,0 +1,44 @@
+= srcom-inspect(1)
+Yuxuan Shui
+:doctype:     manpage
+:mansource:  srcom-inspect
+:manversion: {srcom-version}
+:manmanual:  User Commands
+
+NAME
+----
+srcom-inspect - easily test your srcom rules
+
+SYNOPSIS
+--------
+*srcom-inspect* [_OPTIONS_]
+
+DESCRIPTION
+-----------
+*srcom-inspect* matches your srcom rules against a window of your choosing. It helps you test your rules, and shows you which ones of your rules (don't) work.
+
+OPTIONS
+-------
+*srcom-inspect* accepts all options that *srcom* does. Naturally, most of those options will not be relevant.
+
+These are some of the options you might find useful (See *srcom*(1) for descriptions of what they do):
+
+*--config*, *--log-level*, *--log-file*, all the options related to rules.
+
+*srcom-inspect* also accepts some extra options: :::
+
+  *--monitor*:: Keep *srcom-inspect* running in a loop, and dump information every time something changed about a window.
+
+NOTES
+-----
+*srcom-inspect* is prototype right now. If you find any bug, for example, if rules are matched differently compared to *srcom*, please submit bug reports to:
+
+<https://github.com/yshui/srcom>
+
+RESOURCES
+---------
+Homepage: <https://github.com/yshui/srcom>
+
+SEE ALSO
+--------
+*xcompmgr*(1), xref:srcom.1.adoc[*srcom*(1)]

@@ -11,7 +11,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#include <picom/types.h>
+#include <srcom/types.h>
 #include <test.h>
 
 #include <time.h>

@@ -12,8 +12,8 @@
 struct backend_base;
 
 /// The entry point of a backend plugin. Called after the backend is initialized.
-typedef void (*picom_backend_plugin_entrypoint)(struct backend_base *backend, void *user_data);
-struct picom_api {
+typedef void (*srcom_backend_plugin_entrypoint)(struct backend_base *backend, void *user_data);
+struct srcom_api {
 	/// Add a plugin for a specific backend. The plugin's entry point will be called
 	/// when the specified backend is initialized.
 	///
@@ -25,9 +25,9 @@ struct picom_api {
 	/// @param entrypoint   The entry point of the plugin.
 	/// @param user_data    The user data to pass to the plugin's entry point.
 	bool (*add_backend_plugin)(const char *backend_name, uint64_t major, uint64_t minor,
-	                           picom_backend_plugin_entrypoint entrypoint,
+	                           srcom_backend_plugin_entrypoint entrypoint,
 	                           void *user_data);
 };
 
-const struct picom_api *
-picom_api_get_interfaces(uint64_t major, uint64_t minor, const char *context);
+const struct srcom_api *
+srcom_api_get_interfaces(uint64_t major, uint64_t minor, const char *context);

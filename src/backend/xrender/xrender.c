@@ -15,8 +15,8 @@
 #include <xcb/xcb.h>
 #include <xcb/xproto.h>
 
-#include <picom/backend.h>
-#include <picom/types.h>
+#include <srcom/backend.h>
+#include <srcom/types.h>
 
 #include "backend/backend.h"
 #include "backend/backend_common.h"
@@ -25,7 +25,7 @@
 #include "compiler.h"
 #include "config.h"
 #include "log.h"
-#include "picom.h"
+#include "srcom.h"
 #include "region.h"
 #include "utils/kernel.h"
 #include "utils/misc.h"
@@ -93,7 +93,7 @@ typedef struct xrender_data {
 	xcb_special_event_t *present_event;
 
 	/// Cache an X region to avoid creating and destroying it every frame. A
-	/// workaround for yshui/picom#1166.
+	/// workaround for yshui/srcom#1166.
 	xcb_xfixes_region_t present_region;
 	/// If vsync is enabled and supported by the current system
 	bool vsync;

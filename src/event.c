@@ -10,7 +10,7 @@
 #include <xcb/xcb_event.h>
 #include <xcb/xproto.h>
 
-#include <picom/types.h>
+#include <srcom/types.h>
 
 #include "atom.h"
 #include "c2.h"
@@ -19,7 +19,7 @@
 #include "config.h"
 #include "event.h"
 #include "log.h"
-#include "picom.h"
+#include "srcom.h"
 #include "region.h"
 #include "wm/defs.h"
 #include "wm/wm.h"
@@ -56,7 +56,7 @@ static void srwm_update_cursor_image(session_t *ps);
 /// P.S. There is another reason to avoid sending any request to the server as much as
 /// possible. To make sure requests are sent, flushes are needed. And `xcb_flush`/`XFlush`
 /// functions may read more events from the server into their queues. This is
-/// undesirable, see the comments on `handle_queued_x_events` in picom.c for more details.
+/// undesirable, see the comments on `handle_queued_x_events` in srcom.c for more details.
 
 // TODO(yshui) the things described above. This is mostly done, maybe some of
 //             the functions here is still making unnecessary queries, we need

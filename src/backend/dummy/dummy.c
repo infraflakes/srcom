@@ -1,7 +1,7 @@
 #include <uthash.h>
 #include <xcb/xcb.h>
 
-#include <picom/types.h>
+#include <srcom/types.h>
 
 #include "backend/backend.h"
 #include "backend/backend_common.h"

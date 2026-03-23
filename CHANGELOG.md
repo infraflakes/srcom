@@ -37,7 +37,7 @@
 
 ## Bug fixes
 
-* Fix sometimes window property changes aren't reflected in picom.
+* Fix sometimes window property changes aren't reflected in srcom.
 * Fix shadow-opacity being applied twice. You may need to adjust your shadow-opacity settings. 
 * Properly fix the longstanding "request too big" problem when uploading shadow images. (Previous workaround: 69b3eee76b6f3ec6be1d2402151d8882279a74a4) (#257)
 * Fix window frames not being blended correctly when using `frame-opacity` with `saved-image-blend`.
@@ -51,7 +51,7 @@
 
 ## Other changes
 
-* Hide picom from menus by default (#1155)
+* Hide srcom from menus by default (#1155)
 
 ## Internal changes
 
@@ -105,7 +105,7 @@
 
 ## Bug fixes
 
-* picom stops rendering correctly after monitor configuration changes (#1338, thanks to @Suyooo)
+* srcom stops rendering correctly after monitor configuration changes (#1338, thanks to @Suyooo)
 
 # v12 (2024-Sep-27)
 
@@ -128,7 +128,7 @@
 
 * `transparent-clipping` has no effect (#1317)
 * `unredir` in window rules not being parsed correctly
-* Changing window opacity with `picom-trans` does not take effect immediately (#1315)
+* Changing window opacity with `srcom-trans` does not take effect immediately (#1315)
 
 ## Documentation
 
@@ -146,11 +146,11 @@
 
 ## New features
 
-* Animations! Yes, now picom officially supports animations. For examples, and information on how to configure it, please go to our [documentation site](https://picom.app/#_animations). There are some video clips in #1253 as well. (#1220 #1253 #1303 #1305 #1308 #1310)
-* Universal window rules (#1284). One option to rule them all! Added new configuration option `rules` to replace all existing rule options, and to provide more flexibility on top of that. See [picom(1)](https://picom.app/#_window_rules) for more details. This can be used to configure per-window animations.
-* `@include` directives in config file now also search in `$XDG_CONFIG_HOME/picom/include` and `$XDG_CONFIG_DIRS/picom/include`, in addition to relative to the config file's parent directory.
+* Animations! Yes, now srcom officially supports animations. For examples, and information on how to configure it, please go to our [documentation site](https://srcom.app/#_animations). There are some video clips in #1253 as well. (#1220 #1253 #1303 #1305 #1308 #1310)
+* Universal window rules (#1284). One option to rule them all! Added new configuration option `rules` to replace all existing rule options, and to provide more flexibility on top of that. See [srcom(1)](https://srcom.app/#_window_rules) for more details. This can be used to configure per-window animations.
+* `@include` directives in config file now also search in `$XDG_CONFIG_HOME/srcom/include` and `$XDG_CONFIG_DIRS/srcom/include`, in addition to relative to the config file's parent directory.
 * Allow `corner-radius-rules` to override `corner-radius = 0`. Previously setting corner radius to 0 globally disables rounded corners. (#1170)
-* New `picom-inspect` tool, which lets you test out your picom rules. `man picom-inspect(1)` for more details. Sample output:
+* New `srcom-inspect` tool, which lets you test out your srcom rules. `man srcom-inspect(1)` for more details. Sample output:
 
   ```
   ...
@@ -165,27 +165,27 @@
       class_g = "Alacritty" ... matched/10
 
   Here are some rule(s) that match this window:
-      name = '[0.2.1] ./picom-inspect: ~/p/picom(./picom-inspect: ~/p/picom)*'
+      name = '[0.2.1] ./srcom-inspect: ~/p/srcom(./srcom-inspect: ~/p/srcom)*'
       class_i = 'Alacritty'
       class_g = 'Alacritty'
       window_type = 'normal'
       ! fullscreen
       border_width = 0
   ```
-* picom now has a rudimentary plugin system. At the moment, the only thing you can do with it is loading custom backends.
+* srcom now has a rudimentary plugin system. At the moment, the only thing you can do with it is loading custom backends.
 
 ## Notable changes
 
 * `override_redirect` in rules now only matches top-level windows that doesn't have a client window. Some window managers (e.g. awesome) set override_redirect for all window manager frame windows, causing this rule to match against everything (#625).
 * Marginally improve performance when resizing/opening/closing windows. (#1190)
 * Type and format specifiers are no longer used in rules. These specifiers are what you put after the colon (':') in rules, e.g. the `:32c` in `"_GTK_FRAME_EXTENTS@:32c"`. Now this information is ignored and the property is matched regardless of format or type.
-* `backend` is now a required option. picom will not start if one is not specified explicitly.
+* `backend` is now a required option. srcom will not start if one is not specified explicitly.
 * New predefined target for conditions: `group_focused`. This target indicate whether the focused window is in the same window group as the window being matched.
 * Meaning of `window_type` in conditions changed slightly, now it supports windows with multiple types. (However the behavior of `wintypes` remains unchanged.)
 
 ## Deprecated features
 
-* Setting `--shadow-exclude-reg` is now a hard error. It was deprecated almost since the start of `picom`. `--clip-shadow-above` is the better alternative. (#1254)
+* Setting `--shadow-exclude-reg` is now a hard error. It was deprecated almost since the start of `srcom`. `--clip-shadow-above` is the better alternative. (#1254)
 * Remove command line options `-n`, `-a`, and `-s`. They were removed more than 10 years ago, it's time to finally get rid of them entirely. (#1254)
 * Remove error message for `--glx-swap-method`, it was deprecated in v6.
 * Remove error message for passing argument to `--vsync` arguments, it was deprecated in v5.
@@ -199,8 +199,8 @@
 
 ## Build changes
 
-* picom now uses some OpenGL 4.3 features.
-* picom now optionally depends on `rtkit` at runtime to give itself realtime scheduling priority.
+* srcom now uses some OpenGL 4.3 features.
+* srcom now optionally depends on `rtkit` at runtime to give itself realtime scheduling priority.
 * `libconfig` is now a mandatory dependency, with a minimal supported version of 1.7.
 * `xcb-dpms` is not needed anymore.
 * `libXext` is not needed anymore.
@@ -208,13 +208,13 @@
 
 ## Behind the scene changes
 
-* The X critical section is removed, picom no longer grabs the server to fetch updates. Hopefully, if everything works, this change is unnoticeable. Minor responsiveness improvements could be possible, but I won't bet on it. The main point of this change is this makes debugging much less painful. Previously if you breaks inside the X critical section, the whole X server will lock up, and you would have to connect to the computer remotely to recover. Now there is no longer such worries. This also avoids a bug inside Xorg that makes server grabbing unreliable.
+* The X critical section is removed, srcom no longer grabs the server to fetch updates. Hopefully, if everything works, this change is unnoticeable. Minor responsiveness improvements could be possible, but I won't bet on it. The main point of this change is this makes debugging much less painful. Previously if you breaks inside the X critical section, the whole X server will lock up, and you would have to connect to the computer remotely to recover. Now there is no longer such worries. This also avoids a bug inside Xorg that makes server grabbing unreliable.
 
 # v11.2 (2024-Feb-13)
 
 ## Build changes
 
-* `picom` now depends on `libepoxy` for OpenGL symbol management.
+* `srcom` now depends on `libepoxy` for OpenGL symbol management.
 
 ## Bug fixes
 
@@ -235,19 +235,19 @@
 
 ## Build changes
 
-* Due to some caveats discovered related to setting the `CAP_SYS_NICE` capability, it is now recommended to **NOT** set this capability for picom.
+* Due to some caveats discovered related to setting the `CAP_SYS_NICE` capability, it is now recommended to **NOT** set this capability for srcom.
 
 ## Deprecations
 
 * Uses of `--sw-opti`, and `--respect-prop-shadow` are now hard errors.
-* `-F` has been removed completely. It was deprecated before the picom fork.
+* `-F` has been removed completely. It was deprecated before the srcom fork.
 
 # v11-rc1 (2024-Jan-14)
 
 ## Notable features
 
-* picom now uses dithering to prevent banding. Banding is most notable when using a strong background blur. (#952)
-* Frame pacing. picom uses present feedback information to schedule new frames when it makes sense to do so. This improves latency, and replaces the `glFlush` and `GL_MaxFramesAllowed=1` hacks we used to do for NVIDIA. (#968 #1156)
+* srcom now uses dithering to prevent banding. Banding is most notable when using a strong background blur. (#952)
+* Frame pacing. srcom uses present feedback information to schedule new frames when it makes sense to do so. This improves latency, and replaces the `glFlush` and `GL_MaxFramesAllowed=1` hacks we used to do for NVIDIA. (#968 #1156)
 * Some missing features have been implemented for the EGL backend (#1004 #1007)
 
 ## Bug fixes
@@ -265,7 +265,7 @@
 * Dependency `pcre` has been replaced by `pcre2`.
 * New dependency `xcb-util`.
 * `xinerama` is no longer used.
-* `picom` now tries to give itself a real-time scheduling priority. ~~Please consider giving `picom` the `CAP_SYS_NICE` capability when packaging it.~~
+* `srcom` now tries to give itself a real-time scheduling priority. ~~Please consider giving `srcom` the `CAP_SYS_NICE` capability when packaging it.~~
 
 ## Deprecations
 

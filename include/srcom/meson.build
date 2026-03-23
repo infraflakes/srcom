@@ -5,4 +5,4 @@ api_headers = [
   'api.h',
   'backend.h'
 ]
-install_headers(api_headers, subdir: 'picom')
+install_headers(api_headers, subdir: 'srcom')

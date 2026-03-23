@@ -1,23 +1,23 @@
-= picom-trans(1)
+= srcom-trans(1)
 Yuxuan Shui
 :doctype:    manpage
-:mansource:  picom
-:manversion: {picom-version}
+:mansource:  srcom
+:manversion: {srcom-version}
 :manmanual:  User Commands
 
 NAME
 ----
-picom-trans - an opacity setter tool
+srcom-trans - an opacity setter tool
 
 SYNOPSIS
 --------
 
-*picom-trans* [-w _WINDOW_ID_] [-n _WINDOW_NAME_] [-c] [-s] _OPACITY_
+*srcom-trans* [-w _WINDOW_ID_] [-n _WINDOW_NAME_] [-c] [-s] _OPACITY_
 
 DESCRIPTION
 -----------
 
-*picom-trans* is a bash script that sets __NET_WM_WINDOW_OPACITY_ attribute of a window using standard X11 command-line utilities, including *xprop*(1) and *xwininfo*(1). It is similar to *transset*(1) or *transset-df*(1).
+*srcom-trans* is a bash script that sets __NET_WM_WINDOW_OPACITY_ attribute of a window using standard X11 command-line utilities, including *xprop*(1) and *xwininfo*(1). It is similar to *transset*(1) or *transset-df*(1).
 
 OPTIONS
 -------
@@ -54,61 +54,61 @@ EXAMPLES
 * Set the opacity of the window with specific window ID to 75%:
 +
 ------------
-picom-trans -w "$WINDOWID" 75
+srcom-trans -w "$WINDOWID" 75
 ------------
 
 * Set the opacity of the window with the name "urxvt" to 75%:
 +
 ------------
-picom-trans -n "urxvt" 75
+srcom-trans -n "urxvt" 75
 ------------
 
 * Set current window to opacity of 75%:
 +
 ------------
-picom-trans -c 75
+srcom-trans -c 75
 ------------
 
 * Select target window and set opacity to 75%:
 +
 ------------
-picom-trans -s 75
+srcom-trans -s 75
 ------------
 
 * Increment opacity of current active window by 5%:
 +
 ------------
-picom-trans -c +5
+srcom-trans -c +5
 ------------
 
 * Decrement opacity of current active window by 5%:
 +
 ------------
-picom-trans -c -- -5
+srcom-trans -c -- -5
 ------------
 
 * Delete current window's opacity:
 +
 ------------
-picom-trans -c --delete
+srcom-trans -c --delete
 ------------
 
 * Toggle current window's opacity between 90 and unset
 +
 ------------
-picom-trans -c --toggle 90
+srcom-trans -c --toggle 90
 ------------
 
 * Reset all windows:
 +
 ------------
-picom-trans --reset
+srcom-trans --reset
 ------------
 
 BUGS
 ----
-Please submit bug reports to <https://github.com/yshui/picom>.
+Please submit bug reports to <https://github.com/yshui/srcom>.
 
 SEE ALSO
 --------
-xref:picom.1.adoc[*picom*(1)], *xprop*(1), *xwininfo*(1)
+xref:srcom.1.adoc[*srcom*(1)], *xprop*(1), *xwininfo*(1)

@@ -137,7 +137,7 @@ with tempfile.TemporaryDirectory() as tempdir:
 		print('This commit cannot be built')
 		sys.exit(1)
 
-	version = subprocess.run([Path(tempdir) / 'src' / 'picom', '--version'], capture_output=True, check=True).stdout.decode().strip()
+	version = subprocess.run([Path(tempdir) / 'src' / 'srcom', '--version'], capture_output=True, check=True).stdout.decode().strip()
 	version = version.split(' ')[0]
 
 	if not version.startswith('v'):

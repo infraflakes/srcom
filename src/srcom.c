@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 /*
- * picom - a compositor for X11
+ * srcom - a compositor for X11
  *
  * Based on `compton` - Copyright (c) 2011-2013, Christopher Jeffrey
  * Based on `xcompmgr` - Copyright (c) 2003, Keith Packard
@@ -36,8 +36,8 @@
 #include <xcb/xcb_aux.h>
 #include <xcb/xfixes.h>
 
-#include <picom/backend.h>
-#include <picom/types.h>
+#include <srcom/backend.h>
+#include <srcom/types.h>
 #include <test.h>
 
 #include "api_internal.h"
@@ -53,7 +53,7 @@
 #include "inspect.h"
 #include "log.h"
 #include "options.h"
-#include "picom.h"
+#include "srcom.h"
 #include "region.h"
 #include "renderer/command_builder.h"
 #include "renderer/layout.h"
@@ -1040,7 +1040,7 @@ static int register_cm(session_t *ps) {
 		    ps->c.c, xcb_change_property_checked(
 		                 ps->c.c, XCB_PROP_MODE_REPLACE, ps->reg_win, prop_atoms[i],
 		                 prop_is_utf8[i] ? ps->atoms->aUTF8_STRING : XCB_ATOM_STRING,
-		                 8, strlen("picom"), "picom"));
+		                 8, strlen("srcom"), "srcom"));
 		if (e) {
 			log_error_x_error(&ps->c, e, "Failed to set window property %d",
 			                  prop_atoms[i]);
@@ -1048,11 +1048,11 @@ static int register_cm(session_t *ps) {
 		}
 	}
 
-	const char picom_class[] = "picom\0picom";
+	const char srcom_class[] = "srcom\0srcom";
 	e = xcb_request_check(
 	    ps->c.c, xcb_change_property_checked(ps->c.c, XCB_PROP_MODE_REPLACE, ps->reg_win,
 	                                         ps->atoms->aWM_CLASS, XCB_ATOM_STRING, 8,
-	                                         ARR_SIZE(picom_class), picom_class));
+	                                         ARR_SIZE(srcom_class), srcom_class));
 	if (e) {
 		log_error_x_error(&ps->c, e, "Failed to set the WM_CLASS property");
 		free(e);
@@ -1641,13 +1641,13 @@ static void handle_pending_updates(struct session *ps, double delta_t) {
  * This will result in the compositor resetting itself after next paint.
  */
 static void reset_enable(EV_P_ ev_signal *w attr_unused, int revents attr_unused) {
-	log_info("picom is resetting...");
+	log_info("srcom is resetting...");
 	ev_break(EV_A_ EVBREAK_ALL);
 }
 
 static void exit_enable(EV_P attr_unused, ev_signal *w, int revents attr_unused) {
 	session_t *ps = session_ptr(w, int_signal);
-	log_info("picom is quitting...");
+	log_info("srcom is quitting...");
 	quit(ps);
 }
 
@@ -1798,7 +1798,7 @@ static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
 			//  So here we blindly wait 5 seconds and hope ourselves
 			//  best of the luck.
 			sleep(5);
-			log_info("Resetting picom after device reset");
+			log_info("Resetting srcom after device reset");
 			reset_enable(ps->loop, NULL, 0);
 			return;
 		}
@@ -2009,7 +2009,7 @@ static void show_config_warning_message_box(struct options *opt) {
 	}
 
 	struct x_connection c;
-	if (spawn_picomling(&c) != 0) {
+	if (spawn_srcomling(&c) != 0) {
 		return;
 	}
 
@@ -2032,7 +2032,7 @@ static void show_config_warning_message_box(struct options *opt) {
 	content->margin = 10;
 	content->scale = 0;
 	content->lines[0] = (struct ui_message_box_line){
-	    .text = "picom Warning!",
+	    .text = "srcom Warning!",
 	    .color = UI_COLOR_YELLOW,
 	    .style = UI_STYLE_BOLD,
 	    .justify = UI_JUSTIFY_CENTER,
@@ -2043,7 +2043,7 @@ static void show_config_warning_message_box(struct options *opt) {
 	    "Some of your settings have generated warnings. Check the console";
 	content->lines[2] = normal_line_template;
 	content->lines[2].text =
-	    "output of picom for more information. Offending options are:";
+	    "output of srcom for more information. Offending options are:";
 	content->lines[2].pad_bottom = 10;
 	struct option_name *o, *no;
 	unsigned pos = 3;
@@ -2152,7 +2152,7 @@ static const session_t s_def = {
 
 	const char *basename = strrchr(argv[0], '/') ? strrchr(argv[0], '/') + 1 : argv[0];
 
-	if (strcmp(basename, "picom-inspect") == 0) {
+	if (strcmp(basename, "srcom-inspect") == 0) {
 		ps->o.backend = backend_find("dummy");
 		ps->o.print_diagnostics = false;
 		ps->o.dbus = false;
@@ -2185,7 +2185,7 @@ static const session_t s_def = {
 	}
 
 	if (strstr(argv[0], "compton")) {
-		log_warn("This compositor has been renamed to \"picom\", the \"compton\" "
+		log_warn("This compositor has been renamed to \"srcom\", the \"compton\" "
 		         "binary will not be installed in the future.");
 	}
 

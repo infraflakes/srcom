@@ -10,7 +10,7 @@
 #include <time.h>
 #include <xcb/render.h>        // for xcb_render_fixed_t, XXX
 
-#include <picom/types.h>
+#include <srcom/types.h>
 
 #include "backend/backend_common.h"
 #include "common.h"

@@ -2,7 +2,7 @@
 // Copyright (c) Yuxuan Shui <yshuiv7@gmail.com>
 #pragma once
 #include <epoxy/gl.h>
-#include <picom/backend.h>
+#include <srcom/backend.h>
 #include <stdbool.h>
 #include <xcb/xproto.h>
 

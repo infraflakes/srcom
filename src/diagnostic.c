@@ -10,7 +10,7 @@
 #include "common.h"
 #include "config.h"
 #include "diagnostic.h"
-#include "picom.h"
+#include "srcom.h"
 
 void print_diagnostics(session_t *ps, const char *config_file, bool compositor_running) {
 	printf("**Version:** " PICOM_FULL_VERSION "\n");

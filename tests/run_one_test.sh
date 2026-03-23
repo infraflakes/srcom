@@ -6,14 +6,14 @@ fi
 
 echo "Running test $2"
 
-picom_exe=$1
+srcom_exe=$1
 config=$2
 test_script=$3
 
 function test_with_backend() {
 	backend=$1
 	# TODO keep the log file, and parse it to see if test is successful
-	($picom_exe --dbus --backend $backend --log-level=debug --log-file=$PWD/log --config=$config) &
+	($srcom_exe --dbus --backend $backend --log-level=debug --log-file=$PWD/log --config=$config) &
 	main_pid=$!
 	$test_script
 

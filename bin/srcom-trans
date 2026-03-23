@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MIT
 
 #
-# picom-trans
+# srcom-trans
 # Copyright (c) 2021, Subhaditya Nath
 # Based on previous works of Christopher Jeffrey
 #
@@ -13,24 +13,24 @@
 #
 
 # Usage:
-#   $ picom-trans [options] [+|-]opacity
+#   $ srcom-trans [options] [+|-]opacity
 # By window id
-#   $ picom-trans -w "$WINDOWID" 75
+#   $ srcom-trans -w "$WINDOWID" 75
 # By name
-#   $ picom-trans -n "urxvt" 75
+#   $ srcom-trans -n "urxvt" 75
 # By current window
-#   $ picom-trans -c 75
+#   $ srcom-trans -c 75
 # By selection
-#   $ picom-trans 75
-#   $ picom-trans -s 75
+#   $ srcom-trans 75
+#   $ srcom-trans -s 75
 # Increment current window 5%
-#   $ picom-trans -c +5
+#   $ srcom-trans -c +5
 # Delete current window's opacity
-#   $ picom-trans -c --delete
+#   $ srcom-trans -c --delete
 # Toggle current window's opacity between 90 and unset
-#   $ picom-trans -c --toggle 90
+#   $ srcom-trans -c --toggle 90
 # Reset all windows
-#   $ picom-trans --reset
+#   $ srcom-trans --reset
 
 
 # Save $0 now to print correct value while printing from functions.
@@ -39,8 +39,8 @@
 EXE_NAME="$0"
 
 
-# Instead of printing the full path to this file (e.g. /usr/bin/picom-trans)
-# only print the base name (i.e. picom-trans)
+# Instead of printing the full path to this file (e.g. /usr/bin/srcom-trans)
+# only print the base name (i.e. srcom-trans)
 EXE_NAME="$(basename "$EXE_NAME")"
 
 
@@ -118,16 +118,16 @@ parse_args()
     # Iterate over every argument and check if it is an opacity without the -o
     # option in the previous argument. If so, then prepend the -o option.
     # e.g. Turn this -
-    #     picom-trans -c +10 -s
+    #     srcom-trans -c +10 -s
     # into this -
-    #     picom-trans -c -o +10 -s
+    #     srcom-trans -c -o +10 -s
     #
     # NOTE: Don't touch arguments that are preceded by -o, -w, or -n (i.e. the
     # options that take a value.)
     # e.g. This -
-    #     picom-trans -w 75 -o 90
+    #     srcom-trans -w 75 -o 90
     # should NOT be turned into this -
-    #     picom-trans -w -o 75 -o 90
+    #     srcom-trans -w -o 75 -o 90
     # We ensure this by checking the "$#"th (i.e. the last) argument. If
     # argument is an option that needs a value, we don't do anything to $1.
     #
@@ -164,7 +164,7 @@ parse_args()
 
 
   # NOTE: DO NOT ATTEMPT TO USE "$OPTIND" INSIDE THE getopts LOOP
-  # - https://github.com/yshui/picom/pull/634#discussion_r654571535
+  # - https://github.com/yshui/srcom/pull/634#discussion_r654571535
   # - https://www.mail-archive.com/austin-group-l%40opengroup.org/msg04112.html
   OPTIND=1
   while getopts 'ho:dtrgsn:w:c' OPTION
@@ -336,9 +336,9 @@ toggle_opacity()
 } #}}
 
 
-# Warn about rename of compton to picom
+# Warn about rename of compton to srcom
 case "$0" in
-  *compton-trans*)  echo "Warning: compton has been renamed, please use picom-trans instead" >&2;;
+  *compton-trans*)  echo "Warning: compton has been renamed, please use srcom-trans instead" >&2;;
 esac
 
 

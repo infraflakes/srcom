@@ -17,7 +17,7 @@
 #include <unistd.h>
 #include <xcb/render.h>        // for xcb_render_fixed_t, XXX
 
-#include <picom/types.h>
+#include <srcom/types.h>
 #include <test.h>
 
 #include "common.h"
@@ -461,7 +461,7 @@ static char *locate_auxiliary_file_at(const char *base, const char *scope, const
  *   1) If an absolute path is given, use it directly.
  *   2) Search for the file directly under `include_dir`.
  *   3) Search for the file in the XDG configuration directories, under path
- *      /picom/<scope>/
+ *      /srcom/<scope>/
  */
 char *locate_auxiliary_file(const char *scope, const char *path, const char *include_dir) {
 	if (!path || strlen(path) == 0) {
@@ -485,10 +485,10 @@ char *locate_auxiliary_file(const char *scope, const char *path, const char *inc
 	}
 
 	// Fall back to searching in user config directory
-	scoped_charp picom_scope = mstrjoin("/picom/", scope);
+	scoped_charp srcom_scope = mstrjoin("/srcom/", scope);
 	scoped_charp config_home = (char *)xdg_config_home();
 	if (config_home) {
-		char *ret = locate_auxiliary_file_at(config_home, picom_scope, path);
+		char *ret = locate_auxiliary_file_at(config_home, srcom_scope, path);
 		if (ret) {
 			return ret;
 		}
@@ -497,7 +497,7 @@ char *locate_auxiliary_file(const char *scope, const char *path, const char *inc
 	// Fall back to searching in system config directory
 	auto config_dirs = xdg_config_dirs();
 	for (int i = 0; config_dirs[i]; i++) {
-		char *ret = locate_auxiliary_file_at(config_dirs[i], picom_scope, path);
+		char *ret = locate_auxiliary_file_at(config_dirs[i], srcom_scope, path);
 		if (ret) {
 			free(config_dirs);
 			return ret;

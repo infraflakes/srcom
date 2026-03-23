@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MPL-2.0
 // Copyright (c) 2024 Yuxuan Shui <yshuiv7@gmail.com>
 
-#include <picom/types.h>
+#include <srcom/types.h>
 
 struct x_connection;
 struct ui;

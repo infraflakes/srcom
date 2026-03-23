@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <xcb/sync.h>
 
-#include <picom/types.h>
+#include <srcom/types.h>
 
 struct renderer;
 struct layout_manager;

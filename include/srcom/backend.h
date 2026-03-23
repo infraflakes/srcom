@@ -458,7 +458,7 @@ struct backend_base {
 	// ...
 };
 
-/// Register a new backend, `major` and `minor` should be the version of the picom backend
+/// Register a new backend, `major` and `minor` should be the version of the srcom backend
 /// interface. You should just pass `PICOM_BACKEND_MAJOR` and `PICOM_BACKEND_MINOR` here.
 /// `name` is the name of the backend, `init` is the function to initialize the backend,
 /// `can_present` should be true if the backend can present the back buffer to the screen,

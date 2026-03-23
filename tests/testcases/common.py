@@ -37,7 +37,7 @@ def set_window_bypass_compositor(conn, wid, value = 1):
     prop_name = to_atom(conn, "_NET_WM_BYPASS_COMPOSITOR")
     return conn.core.ChangePropertyChecked(xproto.PropMode.Replace, wid, prop_name, xproto.Atom.CARDINAL, 32, 1, [value])
 
-def find_picom_window(conn):
+def find_srcom_window(conn):
     prop_name = to_atom(conn, "WM_NAME")
     setup = conn.get_setup()
     root = setup.roots[0].root
@@ -46,7 +46,7 @@ def find_picom_window(conn):
     ext = xproto.xprotoExtension(conn)
     for w in windows.children:
         name = ext.GetProperty(False, w, prop_name, xproto.GetPropertyType.Any, 0, (2 ** 32) - 1).reply()
-        if name.value.buf() == b"picom":
+        if name.value.buf() == b"srcom":
             return w
 
 def prepare_root_configure(conn, size = 1000):

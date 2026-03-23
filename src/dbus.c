@@ -13,14 +13,14 @@
 #include <unistd.h>
 #include <xcb/xcb.h>
 
-#include <picom/types.h>
+#include <srcom/types.h>
 
 #include "backend/backend.h"
 #include "common.h"
 #include "compiler.h"
 #include "config.h"
 #include "log.h"
-#include "picom.h"
+#include "srcom.h"
 #include "utils/misc.h"
 #include "utils/str.h"
 #include "wm/defs.h"
@@ -72,8 +72,8 @@ typedef uint32_t cdbus_enum_t;
 	cdbus_reply_errm(conn, dbus_message_new_error_printf(                            \
 	                           (srcmsg), (err_name), (err_format), ##__VA_ARGS__))
 
-#define PICOM_WINDOW_INTERFACE "picom.Window"
-#define PICOM_COMPOSITOR_INTERFACE "picom.Compositor"
+#define PICOM_WINDOW_INTERFACE "srcom.Window"
+#define PICOM_COMPOSITOR_INTERFACE "srcom.Compositor"
 
 static DBusHandlerResult cdbus_process(DBusConnection *conn, DBusMessage *m, void *ud);
 static DBusHandlerResult cdbus_process_windows(DBusConnection *c, DBusMessage *msg, void *ud);
@@ -654,7 +654,7 @@ cdbus_process_window_property_get(session_t *ps, DBusMessage *msg, cdbus_window_
 static DBusHandlerResult cdbus_process_reset(session_t *ps, DBusMessage *msg attr_unused,
                                              DBusMessage *reply, DBusError *e attr_unused) {
 	// Reset the compositor
-	log_info("picom is resetting...");
+	log_info("srcom is resetting...");
 	ev_break(ps->loop, EVBREAK_ALL);
 	if (reply != NULL && !cdbus_append_boolean(reply, true)) {
 		return DBUS_HANDLER_RESULT_NEED_MEMORY;

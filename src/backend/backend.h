@@ -5,7 +5,7 @@
 
 #include <stdbool.h>
 
-#include <picom/backend.h>
+#include <srcom/backend.h>
 
 #include "log.h"
 

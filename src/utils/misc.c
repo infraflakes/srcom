@@ -85,7 +85,7 @@ int quickselect(int *elems, int nelem, int k) {
 
 /// Switch to real-time scheduling policy (SCHED_RR) if possible
 ///
-/// Make picom realtime to reduce latency, and make rendering times more predictable to
+/// Make srcom realtime to reduce latency, and make rendering times more predictable to
 /// help pacing.
 ///
 /// This requires the user to set up permissions for the real-time scheduling. e.g. by

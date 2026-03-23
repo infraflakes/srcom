@@ -3,8 +3,8 @@
 
 #include <inttypes.h>
 
-#include <picom/api.h>
-#include <picom/backend.h>
+#include <srcom/api.h>
+#include <srcom/backend.h>
 
 #include <uthash.h>
 
@@ -21,13 +21,13 @@ struct backend_plugins {
 
 struct backend_plugin {
 	const char *backend_name;
-	picom_backend_plugin_entrypoint entrypoint;
+	srcom_backend_plugin_entrypoint entrypoint;
 	void *user_data;
 	struct list_node siblings;
 };
 
 static bool add_backend_plugin(const char *backend_name, uint64_t major, uint64_t minor,
-                               picom_backend_plugin_entrypoint entrypoint, void *user_data) {
+                               srcom_backend_plugin_entrypoint entrypoint, void *user_data) {
 	if (major != PICOM_BACKEND_MAJOR || minor > PICOM_BACKEND_MINOR) {
 		log_error("Cannot add plugin for backend %s, because the requested "
 		          "version %" PRIu64 ".%" PRIu64 " is incompatible with the our "
@@ -66,12 +66,12 @@ void api_backend_plugins_invoke(const char *backend_name, struct backend_base *b
 	}
 }
 
-static struct picom_api picom_api = {
+static struct srcom_api srcom_api = {
     .add_backend_plugin = add_backend_plugin,
 };
 
-PICOM_PUBLIC_API const struct picom_api *
-picom_api_get_interfaces(uint64_t major, uint64_t minor, const char *context) {
+PICOM_PUBLIC_API const struct srcom_api *
+srcom_api_get_interfaces(uint64_t major, uint64_t minor, const char *context) {
 	if (major != PICOM_API_MAJOR || minor > PICOM_API_MINOR) {
 		log_error("Cannot provide API interfaces to %s, because the requested"
 		          "version %" PRIu64 ".%" PRIu64 " is incompatible with our "
@@ -79,5 +79,5 @@ picom_api_get_interfaces(uint64_t major, uint64_t minor, const char *context) {
 		          context, major, minor, PICOM_API_MAJOR, PICOM_API_MINOR);
 		return NULL;
 	}
-	return &picom_api;
+	return &srcom_api;
 }
