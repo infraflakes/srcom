@@ -481,7 +481,6 @@ void srwm_update_cursor_image(session_t *ps) {
 	ps->cursor_height = reply->height;
 
 	if (reply->width > 0 && reply->height > 0) {
-		uint32_t cursor_len = reply->width * reply->height;
 		uint32_t *pixels = (uint32_t *)((char *)reply + sizeof(xcb_xfixes_get_cursor_image_reply_t));
 		if (ps->backend_data) {
 			struct gl_data *gd = (struct gl_data *)ps->backend_data;
@@ -1802,8 +1801,6 @@ static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
 			reset_enable(ps->loop, NULL, 0);
 			return;
 		}
-		// No need to query pointer here - cursor_x/cursor_y are updated via MotionNotify events	
-
 		layout_manager_append_layout(
 		    ps->layout_manager, ps->wm, ps->root_image_generation,
 		    (ivec2){.width = ps->root_width, .height = ps->root_height},

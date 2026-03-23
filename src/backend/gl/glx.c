@@ -442,8 +442,8 @@ err:
 
 static bool glx_present(backend_t *base) {
 	struct _glx_data *gd = (void *)base;
-	gl_finish_render(&gd->gl);
 	gl_draw_software_cursor(&gd->gl);
+	gl_finish_render(&gd->gl);
 	glXSwapBuffers(base->c->dpy, gd->target_win);
 	return true;
 }

@@ -287,8 +287,8 @@ err:
 
 static bool egl_present(backend_t *base) {
 	struct egl_data *gd = (void *)base;
-	gl_finish_render(&gd->gl);
 	gl_draw_software_cursor(&gd->gl);
+	gl_finish_render(&gd->gl);
 	eglSwapBuffers(gd->display, gd->target_win);
 	return true;
 }
