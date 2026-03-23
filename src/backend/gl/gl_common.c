@@ -209,20 +209,28 @@ _gl_average_texture_color(GLuint source_texture, GLuint destination_texture,
 	// Prepare coordinates
 	GLint coord[] = {
 	    // top left
-	    0, 0,        // vertex coord
-	    0, 0,        // texture coord
+	    0,
+	    0,        // vertex coord
+	    0,
+	    0,        // texture coord
 
 	    // top right
-	    to_width, 0,        // vertex coord
-	    width, 0,           // texture coord
+	    to_width,
+	    0,        // vertex coord
+	    width,
+	    0,        // texture coord
 
 	    // bottom right
-	    to_width, to_height,        // vertex coord
-	    width, height,              // texture coord
+	    to_width,
+	    to_height,        // vertex coord
+	    width,
+	    height,        // texture coord
 
 	    // bottom left
-	    0, to_height,        // vertex coord
-	    0, height,           // texture coord
+	    0,
+	    to_height,        // vertex coord
+	    0,
+	    height,        // texture coord
 	};
 	glBufferSubData(GL_ARRAY_BUFFER, 0, (long)sizeof(*coord) * 16, coord);
 
@@ -1272,15 +1280,14 @@ void gl_draw_software_cursor(struct gl_data *gd) {
 	int cursor_w = ps->cursor_width;
 	int cursor_h = ps->cursor_height;
 
-	float draw_x = (float)zoom_cx + ((float)cursor_x - (float)zoom_cx) * zoom - (float)hotspot_x * zoom;
-	float draw_y = (float)zoom_cy + ((float)cursor_y - (float)zoom_cy) * zoom - (float)hotspot_y * zoom;
-	float draw_w = (float)cursor_w * zoom;
 	float draw_h = (float)cursor_h * zoom;
+	float draw_x = (float)zoom_cx + ((float)cursor_x - (float)zoom_cx) * zoom - (float)hotspot_x * zoom;
+	float visual_y = (float)zoom_cy + ((float)cursor_y - (float)zoom_cy) * zoom - (float)hotspot_y * zoom;  
+	float draw_y = (float)gd->back_image.height - visual_y - draw_h;
+	float draw_w = (float)cursor_w * zoom;
 
 	GLint saved_vao;
 	glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &saved_vao);
-	GLint saved_viewport[4];
-	glGetIntegerv(GL_VIEWPORT, saved_viewport);
 
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
@@ -1289,11 +1296,11 @@ void gl_draw_software_cursor(struct gl_data *gd) {
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, gd->cursor_texture);
 
-	float vertices[] = {
-		draw_x, draw_y, 0.0f, 0.0f,
-		draw_x + draw_w, draw_y, 1.0f, 0.0f,
-		draw_x, draw_y + draw_h, 0.0f, 1.0f,
-		draw_x + draw_w, draw_y + draw_h, 1.0f, 1.0f,
+	float vertices[] = {  
+		draw_x, draw_y,           0.0f, 1.0f,   // bottom-left: V=1 (bottom of texture)  
+		draw_x + draw_w, draw_y,  1.0f, 1.0f,   // bottom-right  
+		draw_x, draw_y + draw_h,  0.0f, 0.0f,   // top-left: V=0 (top of texture)  
+		draw_x + draw_w, draw_y + draw_h, 1.0f, 0.0f,  // top-right  
 	};
 
 	glBindVertexArray(gd->vertex_array_objects[0]);
@@ -1303,7 +1310,8 @@ void gl_draw_software_cursor(struct gl_data *gd) {
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+	                      (void *)(2 * sizeof(float)));
 
 	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
 
@@ -1313,7 +1321,6 @@ void gl_draw_software_cursor(struct gl_data *gd) {
 	glBindVertexArray(saved_vao);
 
 	glUseProgram(0);
-	glViewport(saved_viewport[0], saved_viewport[1], saved_viewport[2], saved_viewport[3]);
 
 	gl_check_err();
 }
@@ -1323,7 +1330,8 @@ void gl_update_cursor_texture(struct gl_data *gd, uint32_t *pixels, int width, i
 		glGenTextures(1, &gd->cursor_texture);
 	}
 	glBindTexture(GL_TEXTURE_2D, gd->cursor_texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, pixels);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA,
+	             GL_UNSIGNED_BYTE, pixels);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);

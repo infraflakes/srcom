@@ -1803,13 +1803,13 @@ static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
 			return;
 		}
 		if (ps->software_cursor_active) {
-			auto pointer = xcb_query_pointer_reply(
-			    ps->c.c, xcb_query_pointer(ps->c.c, ps->c.screen_info->root), NULL);
+			auto pointer = xcb_query_pointer_reply(ps->c.c, xcb_query_pointer(ps->c.c, ps->c.screen_info->root), NULL);
 			if (pointer) {
 				ps->cursor_x = pointer->root_x;
 				ps->cursor_y = pointer->root_y;
 				free(pointer);
 			}
+			force_repaint(ps);
 		}
 
 		layout_manager_append_layout(
@@ -1831,7 +1831,7 @@ static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
 		}
 		did_render = true;
 		if (ps->software_cursor_active) {
-			queue_redraw(ps);
+			force_repaint(ps);
 		}
 		if (ps->next_render > 0) {
 			log_verbose("Render schedule deviation: %ld us (%s) %" PRIu64
