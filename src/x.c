@@ -291,6 +291,8 @@ bool x_extensions_init(struct x_connection *c) {
 		return false;
 	}
 
+	c->e.has_xfixes = true;
+	c->e.xfixes_event = extension->first_event;
 	c->e.fixes_error = extension->first_error;
 
 	// According to the X Fixes extension's specification:

@@ -25,6 +25,8 @@
 #include "wm/wm.h"
 #include "x.h"
 
+static void srwm_update_cursor_image(session_t *ps);
+
 /// Event handling with X is complicated. Handling events with other events possibly
 /// in-flight is no good. Because your internal state won't be up to date. Also, querying
 /// the server while events are in-flight is not good. Because events later in the queue
@@ -806,6 +808,13 @@ void ev_handle(session_t *ps, xcb_generic_event_t *ev) {
 		}
 		if (ps->c.e.damage_event + XCB_DAMAGE_NOTIFY == ev->response_type) {
 			ev_damage_notify(ps, (xcb_damage_notify_event_t *)ev);
+			break;
+		}
+		if (ps->c.e.has_xfixes &&
+		    ev->response_type == ps->c.e.xfixes_event + XCB_XFIXES_CURSOR_NOTIFY) {
+			if (ps->software_cursor_active) {
+				srwm_update_cursor_image(ps);
+			}
 			break;
 		}
 	}

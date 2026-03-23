@@ -421,6 +421,12 @@ static void rebuild_screen_reg(session_t *ps) {
 	get_screen_region(ps, &ps->screen_reg);
 }
 
+struct gl_data;
+void srwm_update_cursor_image(session_t *ps);
+void srwm_enable_software_cursor(session_t *ps);
+void srwm_disable_software_cursor(session_t *ps);
+static void gl_update_cursor_texture(struct gl_data *gd, uint32_t *pixels, int width, int height);
+
 void srwm_read_canvas_state(session_t *ps) {
 	winprop_t prop = x_get_prop(&ps->c, ps->c.screen_info->root,
 	                            ps->atoms->a_SRWM_CANVAS_ACTIVE, 1, XCB_ATOM_CARDINAL, 32);
@@ -453,6 +459,53 @@ void srwm_read_canvas_state(session_t *ps) {
 		ps->srwm_center_y = (int32_t)*prop.p32;
 	}
 	free_winprop(&prop);
+
+	bool zoom_active = ps->srwm_canvas_active && fabsf(ps->srwm_zoom - 1.0f) > 0.001f;
+	if (zoom_active && !ps->software_cursor_active) {
+		srwm_enable_software_cursor(ps);
+	} else if (!zoom_active && ps->software_cursor_active) {
+		srwm_disable_software_cursor(ps);
+	}
+}
+
+void srwm_update_cursor_image(session_t *ps) {
+	xcb_xfixes_get_cursor_image_reply_t *reply = xcb_xfixes_get_cursor_image_reply(
+	    ps->c.c, xcb_xfixes_get_cursor_image(ps->c.c), NULL);
+	if (!reply) {
+		return;
+	}
+
+	ps->cursor_hotspot_x = reply->xhot;
+	ps->cursor_hotspot_y = reply->yhot;
+	ps->cursor_width = reply->width;
+	ps->cursor_height = reply->height;
+
+	if (reply->width > 0 && reply->height > 0) {
+		uint32_t cursor_len = reply->width * reply->height;
+		uint32_t *pixels = (uint32_t *)((char *)reply + sizeof(xcb_xfixes_get_cursor_image_reply_t));
+		if (ps->backend_data) {
+			struct gl_data *gd = (struct gl_data *)ps->backend_data;
+			gl_update_cursor_texture(gd, pixels, reply->width, reply->height);
+		}
+		ps->cursor_image_valid = true;
+	}
+
+	free(reply);
+}
+
+void srwm_enable_software_cursor(session_t *ps) {
+	xcb_xfixes_hide_cursor(ps->c.c, ps->c.screen_info->root);
+	ps->software_cursor_active = true;
+	srwm_update_cursor_image(ps);
+	xcb_xfixes_select_cursor_input(ps->c.c, ps->c.screen_info->root,
+	                               XCB_XFIXES_CURSOR_NOTIFY_MASK_DISPLAY_CURSOR);
+}
+
+void srwm_disable_software_cursor(session_t *ps) {
+	xcb_xfixes_show_cursor(ps->c.c, ps->c.screen_info->root);
+	ps->software_cursor_active = false;
+	ps->cursor_image_valid = false;
+	xcb_xfixes_select_cursor_input(ps->c.c, ps->c.screen_info->root, 0);
 }
 
 /// Free up all the images and deinit the backend
@@ -1749,6 +1802,16 @@ static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
 			reset_enable(ps->loop, NULL, 0);
 			return;
 		}
+		if (ps->software_cursor_active) {
+			auto pointer = xcb_query_pointer_reply(
+			    ps->c.c, xcb_query_pointer(ps->c.c, ps->c.screen_info->root), NULL);
+			if (pointer) {
+				ps->cursor_x = pointer->root_x;
+				ps->cursor_y = pointer->root_y;
+				free(pointer);
+			}
+		}
+
 		layout_manager_append_layout(
 		    ps->layout_manager, ps->wm, ps->root_image_generation,
 		    (ivec2){.width = ps->root_width, .height = ps->root_height},
@@ -1767,6 +1830,9 @@ static void draw_callback_impl(EV_P_ session_t *ps, int revents attr_unused) {
 			abort();
 		}
 		did_render = true;
+		if (ps->software_cursor_active) {
+			queue_redraw(ps);
+		}
 		if (ps->next_render > 0) {
 			log_verbose("Render schedule deviation: %ld us (%s) %" PRIu64
 			            " %" PRIu64,
@@ -2399,6 +2465,10 @@ err:
  * @param ps session to destroy
  */
 static void session_destroy(session_t *ps) {
+	if (ps->software_cursor_active) {
+		srwm_disable_software_cursor(ps);
+	}
+
 	if (ps->redirected) {
 		unredirect(ps);
 	}

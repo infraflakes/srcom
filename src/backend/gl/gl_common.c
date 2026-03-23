@@ -1061,6 +1061,7 @@ bool gl_init(struct gl_data *gd, session_t *ps) {
 		          "missing.");
 		return false;
 	}
+	gd->ps = ps;
 	glGenQueries(2, gd->frame_timing);
 	gd->current_frame_timing = 0;
 
@@ -1195,6 +1196,18 @@ bool gl_init(struct gl_data *gd, session_t *ps) {
 	gd->has_egl_image_storage = epoxy_has_gl_extension("GL_EXT_EGL_image_storage");
 	gd->back_image.y_inverted = false;
 
+	gd->cursor_texture_initialized = false;
+	gd->cursor_texture = 0;
+	gd->cursor_shader.prog = gl_create_program_from_str(cursor_vert, cursor_frag);
+	if (!gd->cursor_shader.prog) {
+		log_error("Failed to create the cursor shader");
+		return false;
+	}
+	gd->cursor_shader.uniform_bitmask = (uint32_t)-1;
+	glUseProgram(gd->cursor_shader.prog);
+	glUniform1i(UNIFORM_TEX_LOC, 0);
+	glUseProgram(0);
+
 	gl_check_err();
 
 	return true;
@@ -1230,7 +1243,93 @@ void gl_deinit(struct gl_data *gd) {
 
 	glDeleteQueries(2, gd->frame_timing);
 
+	if (gd->cursor_texture) {
+		glDeleteTextures(1, &gd->cursor_texture);
+	}
+	glDeleteProgram(gd->cursor_shader.prog);
+
 	gl_check_err();
+}
+
+void gl_draw_software_cursor(struct gl_data *gd) {
+	if (!gd->cursor_texture_initialized || !gd->cursor_texture) {
+		return;
+	}
+
+	session_t *ps = gd->ps;
+	if (!ps->software_cursor_active || !ps->cursor_image_valid) {
+		return;
+	}
+
+	float zoom = ps->srwm_zoom;
+	int zoom_cx = ps->srwm_center_x;
+	int zoom_cy = ps->srwm_center_y;
+	int cursor_x = ps->cursor_x;
+	int cursor_y = ps->cursor_y;
+	int hotspot_x = ps->cursor_hotspot_x;
+	int hotspot_y = ps->cursor_hotspot_y;
+	int cursor_w = ps->cursor_width;
+	int cursor_h = ps->cursor_height;
+
+	float draw_x = (float)zoom_cx + ((float)cursor_x - (float)zoom_cx) * zoom - (float)hotspot_x * zoom;
+	float draw_y = (float)zoom_cy + ((float)cursor_y - (float)zoom_cy) * zoom - (float)hotspot_y * zoom;
+	float draw_w = (float)cursor_w * zoom;
+	float draw_h = (float)cursor_h * zoom;
+
+	GLint saved_vao;
+	glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &saved_vao);
+	GLint saved_viewport[4];
+	glGetIntegerv(GL_VIEWPORT, saved_viewport);
+
+	glViewport(0, 0, gd->back_image.width, gd->back_image.height);
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
+	glUseProgram(gd->cursor_shader.prog);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, gd->cursor_texture);
+
+	float vertices[] = {
+		draw_x, draw_y, 0.0f, 0.0f,
+		draw_x + draw_w, draw_y, 1.0f, 0.0f,
+		draw_x, draw_y + draw_h, 0.0f, 1.0f,
+		draw_x + draw_w, draw_y + draw_h, 1.0f, 1.0f,
+	};
+
+	glBindVertexArray(gd->vertex_array_objects[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, gd->buffer_objects[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
+
+	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
+
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindVertexArray(saved_vao);
+
+	glUseProgram(0);
+	glViewport(saved_viewport[0], saved_viewport[1], saved_viewport[2], saved_viewport[3]);
+
+	gl_check_err();
+}
+
+void gl_update_cursor_texture(struct gl_data *gd, uint32_t *pixels, int width, int height) {
+	if (!gd->cursor_texture) {
+		glGenTextures(1, &gd->cursor_texture);
+	}
+	glBindTexture(GL_TEXTURE_2D, gd->cursor_texture);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA, GL_UNSIGNED_BYTE, pixels);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	gd->cursor_texture_initialized = true;
 }
 
 GLuint gl_new_texture(void) {

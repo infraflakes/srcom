@@ -212,6 +212,18 @@ typedef struct session {
 	int srwm_center_x, srwm_center_y;
 	/// Whether srwm canvas mode is active
 	bool srwm_canvas_active;
+
+	// === Software cursor for srwm zoom ===
+	/// Whether the software cursor is currently active
+	bool software_cursor_active;
+	/// Current cursor position (root coordinates)
+	int cursor_x, cursor_y;
+	/// Cursor hotspot offset
+	int cursor_hotspot_x, cursor_hotspot_y;
+	/// Cursor image dimensions
+	int cursor_width, cursor_height;
+	/// Whether we have a valid cursor image
+	bool cursor_image_valid;
 } session_t;
 
 struct wintype_info {

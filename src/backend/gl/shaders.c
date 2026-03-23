@@ -263,4 +263,26 @@ const char dither_glsl[] = GLSL(330,
 		return vec4(c + dithered * bayer(coord) / 255.0);
 	}
 );
+
+const char cursor_vert[] = GLSL(330,
+	layout(location = 0) in vec2 in_coord;
+	layout(location = 1) in vec2 in_texcoord;
+	layout(location = UNIFORM_PROJECTION_LOC)
+	uniform mat4 projection;
+	out vec2 texcoord;
+	void main() {
+		gl_Position = projection * vec4(in_coord, 0.0, 1.0);
+		texcoord = in_texcoord;
+	}
+);
+
+const char cursor_frag[] = GLSL(330,
+	layout(location = UNIFORM_TEX_LOC)
+	uniform sampler2D cursor_tex;
+	in vec2 texcoord;
+	out vec4 out_color;
+	void main() {
+		out_color = texture(cursor_tex, texcoord);
+	}
+);
 // clang-format on
