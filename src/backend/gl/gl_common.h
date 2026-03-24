@@ -122,10 +122,13 @@ struct gl_data {
 	bool cursor_texture_initialized;
 
 	/// Zoom border blur resources
-	GLuint border_blur_fbo[2];
-	GLuint border_blur_textures[2];
-	int border_blur_tex_w[2], border_blur_tex_h[2];
+#define BORDER_BLUR_LEVELS 4
+	GLuint border_blur_fbo[BORDER_BLUR_LEVELS];
+	GLuint border_blur_textures[BORDER_BLUR_LEVELS];
+	int border_blur_tex_w[BORDER_BLUR_LEVELS], border_blur_tex_h[BORDER_BLUR_LEVELS];
 	struct gl_shader border_blur_shader;
+	struct gl_shader kawase_down_shader;
+	struct gl_shader kawase_up_shader;
 };
 
 typedef struct session session_t;
@@ -329,4 +332,5 @@ extern const char vertex_shader[], blend_with_mask_frag[], masking_glsl[],
     scaled_masking_glsl[], copy_area_frag[], copy_area_with_dither_frag[], fill_frag[],
     fill_vert[], interpolating_frag[], interpolating_vert[], blit_shader_glsl[],
     blit_shader_default[], present_vertex_shader[], dither_glsl[], cursor_vert[],
-    cursor_frag[], border_blur_vert[], border_blur_frag[];
+    cursor_frag[], border_blur_vert[], border_blur_frag[], kawase_down_vert[],
+    kawase_down_frag[], kawase_up_vert[], kawase_up_frag[];

@@ -310,4 +310,65 @@ const char border_blur_frag[] = GLSL(330,
 		out_color = vec4(c.rgb * (1.0 - darkness * 0.4), c.a);
 	}
 );
+
+const char kawase_down_vert[] = GLSL(330,
+	layout(location = 0) in vec2 in_coord;
+	layout(location = 1) in vec2 in_texcoord;
+	out vec2 texcoord;
+	void main() {
+		gl_Position = vec4(in_coord, 0.0, 1.0);
+		texcoord = in_texcoord;
+	}
+);
+
+const char kawase_down_frag[] = GLSL(330,
+	layout(location = UNIFORM_PIXEL_NORM_LOC)
+	uniform vec2 pixel_norm;
+	layout(location = UNIFORM_TEX_LOC)
+	uniform sampler2D tex_src;
+	in vec2 texcoord;
+	out vec4 out_color;
+	void main() {
+		vec2 uv = texcoord;
+		vec2 offset = pixel_norm;
+		vec4 sum = texture(tex_src, uv) * 4.0;
+		sum += texture(tex_src, uv + vec2(-0.5, -0.5) * offset);
+		sum += texture(tex_src, uv + vec2( 0.5, -0.5) * offset);
+		sum += texture(tex_src, uv + vec2(-0.5,  0.5) * offset);
+		sum += texture(tex_src, uv + vec2( 0.5,  0.5) * offset);
+		out_color = sum / 8.0;
+	}
+);
+
+const char kawase_up_vert[] = GLSL(330,
+	layout(location = 0) in vec2 in_coord;
+	layout(location = 1) in vec2 in_texcoord;
+	out vec2 texcoord;
+	void main() {
+		gl_Position = vec4(in_coord, 0.0, 1.0);
+		texcoord = in_texcoord;
+	}
+);
+
+const char kawase_up_frag[] = GLSL(330,
+	layout(location = UNIFORM_PIXEL_NORM_LOC)
+	uniform vec2 pixel_norm;
+	layout(location = UNIFORM_TEX_LOC)
+	uniform sampler2D tex_src;
+	in vec2 texcoord;
+	out vec4 out_color;
+	void main() {
+		vec2 uv = texcoord;
+		vec2 offset = pixel_norm;
+		vec4 sum = texture(tex_src, uv + vec2(-1.0,  0.0) * offset);
+		sum += texture(tex_src, uv + vec2(-0.5,  0.5) * offset) * 2.0;
+		sum += texture(tex_src, uv + vec2( 0.0,  1.0) * offset);
+		sum += texture(tex_src, uv + vec2( 0.5,  0.5) * offset) * 2.0;
+		sum += texture(tex_src, uv + vec2( 1.0,  0.0) * offset);
+		sum += texture(tex_src, uv + vec2( 0.5, -0.5) * offset) * 2.0;
+		sum += texture(tex_src, uv + vec2( 0.0, -1.0) * offset);
+		sum += texture(tex_src, uv + vec2(-0.5, -0.5) * offset) * 2.0;
+		out_color = sum / 12.0;
+	}
+);
 // clang-format on

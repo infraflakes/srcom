@@ -1217,12 +1217,11 @@ bool gl_init(struct gl_data *gd, session_t *ps) {
 	glUniformMatrix4fv(UNIFORM_PROJECTION_LOC, 1, false, projection_matrix[0]);
 	glUseProgram(0);
 
-	gd->border_blur_fbo[0] = 0;
-	gd->border_blur_fbo[1] = 0;
-	gd->border_blur_textures[0] = 0;
-	gd->border_blur_textures[1] = 0;
-	gd->border_blur_tex_w[0] = gd->border_blur_tex_h[0] = 0;
-	gd->border_blur_tex_w[1] = gd->border_blur_tex_h[1] = 0;
+	for (int i = 0; i < BORDER_BLUR_LEVELS; i++) {
+		gd->border_blur_fbo[i] = 0;
+		gd->border_blur_textures[i] = 0;
+		gd->border_blur_tex_w[i] = gd->border_blur_tex_h[i] = 0;
+	}
 	gd->border_blur_shader.prog = gl_create_program_from_str(border_blur_vert, border_blur_frag);
 	if (!gd->border_blur_shader.prog) {
 		log_error("Failed to create border blur shader");
@@ -1234,8 +1233,26 @@ bool gl_init(struct gl_data *gd, session_t *ps) {
 	glUniformMatrix4fv(UNIFORM_PROJECTION_LOC, 1, false, projection_matrix[0]);
 	glUseProgram(0);
 
-	glGenFramebuffers(2, gd->border_blur_fbo);
-	glGenTextures(2, gd->border_blur_textures);
+	gd->kawase_down_shader.prog = gl_create_program_from_str(kawase_down_vert, kawase_down_frag);
+	if (!gd->kawase_down_shader.prog) {
+		log_error("Failed to create kawase downsample shader");
+		return false;
+	}
+	glUseProgram(gd->kawase_down_shader.prog);
+	glUniform1i(UNIFORM_TEX_LOC, 0);
+	glUseProgram(0);
+
+	gd->kawase_up_shader.prog = gl_create_program_from_str(kawase_up_vert, kawase_up_frag);
+	if (!gd->kawase_up_shader.prog) {
+		log_error("Failed to create kawase upsample shader");
+		return false;
+	}
+	glUseProgram(gd->kawase_up_shader.prog);
+	glUniform1i(UNIFORM_TEX_LOC, 0);
+	glUseProgram(0);
+
+	glGenFramebuffers(BORDER_BLUR_LEVELS, gd->border_blur_fbo);
+	glGenTextures(BORDER_BLUR_LEVELS, gd->border_blur_textures);
 
 	gl_check_err();
 
@@ -1278,12 +1295,14 @@ void gl_deinit(struct gl_data *gd) {
 	glDeleteProgram(gd->cursor_shader.prog);
 
 	if (gd->border_blur_textures[0]) {
-		glDeleteTextures(2, gd->border_blur_textures);
+		glDeleteTextures(BORDER_BLUR_LEVELS, gd->border_blur_textures);
 	}
 	if (gd->border_blur_fbo[0]) {
-		glDeleteFramebuffers(2, gd->border_blur_fbo);
+		glDeleteFramebuffers(BORDER_BLUR_LEVELS, gd->border_blur_fbo);
 	}
 	glDeleteProgram(gd->border_blur_shader.prog);
+	glDeleteProgram(gd->kawase_down_shader.prog);
+	glDeleteProgram(gd->kawase_up_shader.prog);
 
 	gl_check_err();
 }
@@ -1316,52 +1335,95 @@ void gl_draw_zoom_border_blur(struct gl_data *gd) {
 		return;
 	}
 
-	int blur_w = (screen_w + 7) / 8;
-	int blur_h = (screen_h + 7) / 8;
-
-	if (blur_w != gd->border_blur_tex_w[0] || blur_h != gd->border_blur_tex_h[0]) {
-		gd->border_blur_tex_w[0] = blur_w;
-		gd->border_blur_tex_h[0] = blur_h;
-		glBindTexture(GL_TEXTURE_2D, gd->border_blur_textures[0]);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, blur_w, blur_h, 0,
-					 GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-
-		int blur_w2 = (blur_w + 1) / 2;
-		int blur_h2 = (blur_h + 1) / 2;
-		gd->border_blur_tex_w[1] = blur_w2;
-		gd->border_blur_tex_h[1] = blur_h2;
-		glBindTexture(GL_TEXTURE_2D, gd->border_blur_textures[1]);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, blur_w2, blur_h2, 0,
-					 GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	int tw = (screen_w + 1) / 2;
+	int th = (screen_h + 1) / 2;
+	bool need_realloc = false;
+	for (int i = 0; i < BORDER_BLUR_LEVELS; i++) {
+		int w = tw >> i;
+		int h = th >> i;
+		if (w < 1) w = 1;
+		if (h < 1) h = 1;
+		if (gd->border_blur_tex_w[i] != w || gd->border_blur_tex_h[i] != h) {
+			need_realloc = true;
+		}
+	}
+	if (need_realloc) {
+		for (int i = 0; i < BORDER_BLUR_LEVELS; i++) {
+			int w = tw >> i;
+			int h = th >> i;
+			if (w < 1) w = 1;
+			if (h < 1) h = 1;
+			gd->border_blur_tex_w[i] = w;
+			gd->border_blur_tex_h[i] = h;
+			glBindTexture(GL_TEXTURE_2D, gd->border_blur_textures[i]);
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		}
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gd->border_blur_fbo[0]);
 	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-						  GL_TEXTURE_2D, gd->border_blur_textures[0], 0);
+						   GL_TEXTURE_2D, gd->border_blur_textures[0], 0);
 	glBlitFramebuffer(0, screen_h, screen_w, 0,
-					  0, 0, blur_w, blur_h,
+					  0, 0, gd->border_blur_tex_w[0], gd->border_blur_tex_h[0],
 					  GL_COLOR_BUFFER_BIT, GL_LINEAR);
 
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, gd->border_blur_fbo[0]);
-	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-						  GL_TEXTURE_2D, gd->border_blur_textures[0], 0);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gd->border_blur_fbo[1]);
-	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-						  GL_TEXTURE_2D, gd->border_blur_textures[1], 0);
-	glBlitFramebuffer(0, 0, blur_w, blur_h,
-					  0, 0, gd->border_blur_tex_w[1], gd->border_blur_tex_h[1],
-					  GL_COLOR_BUFFER_BIT, GL_LINEAR);
+	float fsq[] = {
+		-1, -1, 0, 0,
+		 1, -1, 1, 0,
+		-1,  1, 0, 1,
+		 1,  1, 1, 1,
+	};
+	GLuint fsq_indices[] = {0, 1, 2, 2, 1, 3};
 
+	glBindVertexArray(gd->vertex_array_objects[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, gd->buffer_objects[0]);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(fsq), fsq, GL_STREAM_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gd->buffer_objects[1]);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(fsq_indices), fsq_indices, GL_STREAM_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
+
+	glDisable(GL_BLEND);
+
+	glUseProgram(gd->kawase_down_shader.prog);
+	for (int i = 1; i < BORDER_BLUR_LEVELS; i++) {
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, gd->border_blur_textures[i - 1]);
+		glUniform2f(UNIFORM_PIXEL_NORM_LOC,
+					1.0f / (float)gd->border_blur_tex_w[i - 1],
+					1.0f / (float)gd->border_blur_tex_h[i - 1]);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gd->border_blur_fbo[i]);
+		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+							   GL_TEXTURE_2D, gd->border_blur_textures[i], 0);
+		glViewport(0, 0, gd->border_blur_tex_w[i], gd->border_blur_tex_h[i]);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+	}
+
+	glUseProgram(gd->kawase_up_shader.prog);
+	for (int i = BORDER_BLUR_LEVELS - 1; i > 0; i--) {
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, gd->border_blur_textures[i]);
+		glUniform2f(UNIFORM_PIXEL_NORM_LOC,
+					1.0f / (float)gd->border_blur_tex_w[i],
+					1.0f / (float)gd->border_blur_tex_h[i]);
+		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gd->border_blur_fbo[i - 1]);
+		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+							   GL_TEXTURE_2D, gd->border_blur_textures[i - 1], 0);
+		glViewport(0, 0, gd->border_blur_tex_w[i - 1], gd->border_blur_tex_h[i - 1]);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+	}
+
+	GLint viewport_dimensions[2];
+	glGetIntegerv(GL_MAX_VIEWPORT_DIMS, viewport_dimensions);
+	glViewport(0, 0, viewport_dimensions[0], viewport_dimensions[1]);
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
 	glEnable(GL_BLEND);
@@ -1369,15 +1431,11 @@ void gl_draw_zoom_border_blur(struct gl_data *gd) {
 
 	glUseProgram(gd->border_blur_shader.prog);
 	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, gd->border_blur_textures[1]);
+	glBindTexture(GL_TEXTURE_2D, gd->border_blur_textures[0]);
 	glUniform1f(UNIFORM_OPACITY_LOC, 0.3f);
 
 	GLfloat vertices[4 * 4];
 	GLuint indices[] = {0, 1, 2, 2, 1, 3};
-
-	glBindVertexArray(gd->vertex_array_objects[0]);
-	glBindBuffer(GL_ARRAY_BUFFER, gd->buffer_objects[0]);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gd->buffer_objects[1]);
 
 	glEnableVertexAttribArray(0);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
