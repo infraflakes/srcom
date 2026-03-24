@@ -122,7 +122,7 @@ struct gl_data {
 	bool cursor_texture_initialized;
 
 	/// Zoom border blur resources
-	GLuint border_blur_fbo;
+	GLuint border_blur_fbo[2];
 	GLuint border_blur_textures[2];
 	int border_blur_tex_w[2], border_blur_tex_h[2];
 	struct gl_shader border_blur_shader;
