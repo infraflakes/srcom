@@ -14,7 +14,7 @@ compton
 *.o
 *.d
 build/
-dist/
+bin/
 compile_commands.json
 build.ninja
 

@@ -1,9 +1,9 @@
 .PHONY: build clean
 
 build: clean
-	@mkdir -p dist
-	dagger call build --source=. export --path=./dist/srcom
+	@mkdir -p bin
+	dagger call build --source=. export --path=./bin/srcom
 
 clean:
-	rm -rf dist/
+	rm -rf bin/
 	rm -rf build/
