@@ -285,4 +285,29 @@ const char cursor_frag[] = GLSL(330,
 		out_color = texture(cursor_tex, texcoord);
 	}
 );
+
+const char border_blur_vert[] = GLSL(330,
+	layout(location = 0) in vec2 in_coord;
+	layout(location = 1) in vec2 in_texcoord;
+	layout(location = UNIFORM_PROJECTION_LOC)
+	uniform mat4 projection;
+	out vec2 texcoord;
+	void main() {
+		gl_Position = projection * vec4(in_coord, 0.0, 1.0);
+		texcoord = in_texcoord;
+	}
+);
+
+const char border_blur_frag[] = GLSL(330,
+	layout(location = UNIFORM_TEX_LOC)
+	uniform sampler2D blur_tex;
+	layout(location = UNIFORM_OPACITY_LOC)
+	uniform float darkness;
+	in vec2 texcoord;
+	out vec4 out_color;
+	void main() {
+		vec4 c = texture(blur_tex, texcoord);
+		out_color = vec4(c.rgb * (1.0 - darkness * 0.4), c.a);
+	}
+);
 // clang-format on

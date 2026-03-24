@@ -120,6 +120,12 @@ struct gl_data {
 	struct gl_shader cursor_shader;
 	/// Whether cursor texture is initialized
 	bool cursor_texture_initialized;
+
+	/// Zoom border blur resources
+	GLuint border_blur_fbo;
+	GLuint border_blur_textures[2];
+	int border_blur_tex_w[2], border_blur_tex_h[2];
+	struct gl_shader border_blur_shader;
 };
 
 typedef struct session session_t;
@@ -166,6 +172,7 @@ void gl_resize(struct gl_data *, int width, int height);
 bool gl_init(struct gl_data *gd, session_t *);
 void gl_deinit(struct gl_data *gd);
 void gl_draw_software_cursor(struct gl_data *gd);
+void gl_draw_zoom_border_blur(struct gl_data *gd);
 void gl_update_cursor_texture(struct gl_data *gd, uint32_t *pixels, int width, int height);
 
 GLuint gl_new_texture(void);
@@ -322,4 +329,4 @@ extern const char vertex_shader[], blend_with_mask_frag[], masking_glsl[],
     scaled_masking_glsl[], copy_area_frag[], copy_area_with_dither_frag[], fill_frag[],
     fill_vert[], interpolating_frag[], interpolating_vert[], blit_shader_glsl[],
     blit_shader_default[], present_vertex_shader[], dither_glsl[], cursor_vert[],
-    cursor_frag[];
+    cursor_frag[], border_blur_vert[], border_blur_frag[];

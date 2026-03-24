@@ -1217,6 +1217,25 @@ bool gl_init(struct gl_data *gd, session_t *ps) {
 	glUniformMatrix4fv(UNIFORM_PROJECTION_LOC, 1, false, projection_matrix[0]);
 	glUseProgram(0);
 
+	gd->border_blur_fbo = 0;
+	gd->border_blur_textures[0] = 0;
+	gd->border_blur_textures[1] = 0;
+	gd->border_blur_tex_w[0] = gd->border_blur_tex_h[0] = 0;
+	gd->border_blur_tex_w[1] = gd->border_blur_tex_h[1] = 0;
+	gd->border_blur_shader.prog = gl_create_program_from_str(border_blur_vert, border_blur_frag);
+	if (!gd->border_blur_shader.prog) {
+		log_error("Failed to create border blur shader");
+		return false;
+	}
+	gd->border_blur_shader.uniform_bitmask = (uint32_t)-1;
+	glUseProgram(gd->border_blur_shader.prog);
+	glUniform1i(UNIFORM_TEX_LOC, 0);
+	glUniformMatrix4fv(UNIFORM_PROJECTION_LOC, 1, false, projection_matrix[0]);
+	glUseProgram(0);
+
+	glGenFramebuffers(1, &gd->border_blur_fbo);
+	glGenTextures(2, gd->border_blur_textures);
+
 	gl_check_err();
 
 	return true;
@@ -1256,6 +1275,161 @@ void gl_deinit(struct gl_data *gd) {
 		glDeleteTextures(1, &gd->cursor_texture);
 	}
 	glDeleteProgram(gd->cursor_shader.prog);
+
+	if (gd->border_blur_textures[0]) {
+		glDeleteTextures(2, gd->border_blur_textures);
+	}
+	if (gd->border_blur_fbo) {
+		glDeleteFramebuffers(1, &gd->border_blur_fbo);
+	}
+	glDeleteProgram(gd->border_blur_shader.prog);
+
+	gl_check_err();
+}
+
+void gl_draw_zoom_border_blur(struct gl_data *gd) {
+	session_t *ps = gd->ps;
+	if (!ps->srwm_canvas_active || ps->srwm_zoom >= 1.0f) {
+		return;
+	}
+
+	float zoom = ps->srwm_zoom;
+	int screen_w = gd->back_image.width;
+	int screen_h = gd->back_image.height;
+	float cx = (float)ps->srwm_center_x;
+	float cy = (float)ps->srwm_center_y;
+
+	float vp_half_w = (float)screen_w * zoom / 2.0f;
+	float vp_half_h = (float)screen_h * zoom / 2.0f;
+	float vp_left = cx - vp_half_w;
+	float vp_right = cx + vp_half_w;
+	float vp_top = cy - vp_half_h;
+	float vp_bottom = cy + vp_half_h;
+
+	vp_left = fmaxf(0, vp_left);
+	vp_top = fmaxf(0, vp_top);
+	vp_right = fminf((float)screen_w, vp_right);
+	vp_bottom = fminf((float)screen_h, vp_bottom);
+
+	if (vp_left <= 0 && vp_top <= 0 && vp_right >= screen_w && vp_bottom >= screen_h) {
+		return;
+	}
+
+	int blur_w = (screen_w + 7) / 8;
+	int blur_h = (screen_h + 7) / 8;
+
+	if (blur_w != gd->border_blur_tex_w[0] || blur_h != gd->border_blur_tex_h[0]) {
+		gd->border_blur_tex_w[0] = blur_w;
+		gd->border_blur_tex_h[0] = blur_h;
+		glBindTexture(GL_TEXTURE_2D, gd->border_blur_textures[0]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, blur_w, blur_h, 0,
+					 GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+		int blur_w2 = (blur_w + 1) / 2;
+		int blur_h2 = (blur_h + 1) / 2;
+		gd->border_blur_tex_w[1] = blur_w2;
+		gd->border_blur_tex_h[1] = blur_h2;
+		glBindTexture(GL_TEXTURE_2D, gd->border_blur_textures[1]);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, blur_w2, blur_h2, 0,
+					 GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glBindTexture(GL_TEXTURE_2D, 0);
+	}
+
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gd->border_blur_fbo);
+	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+						  GL_TEXTURE_2D, gd->border_blur_textures[0], 0);
+	glBlitFramebuffer(0, 0, screen_w, screen_h,
+					  0, 0, blur_w, blur_h,
+					  GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, gd->border_blur_fbo);
+	glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+						  GL_TEXTURE_2D, gd->border_blur_textures[0], 0);
+	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+						  GL_TEXTURE_2D, gd->border_blur_textures[1], 0);
+	glBlitFramebuffer(0, 0, blur_w, blur_h,
+					  0, 0, gd->border_blur_tex_w[1], gd->border_blur_tex_h[1],
+					  GL_COLOR_BUFFER_BIT, GL_LINEAR);
+
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+	glEnable(GL_BLEND);
+	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
+
+	glUseProgram(gd->border_blur_shader.prog);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, gd->border_blur_textures[1]);
+	glUniform1f(UNIFORM_OPACITY_LOC, 0.3f);
+
+	GLfloat vertices[4 * 4];
+	GLuint indices[] = {0, 1, 2, 2, 1, 3};
+
+	glBindVertexArray(gd->vertex_array_objects[0]);
+	glBindBuffer(GL_ARRAY_BUFFER, gd->buffer_objects[0]);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gd->buffer_objects[1]);
+
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
+						  (void *)(2 * sizeof(float)));
+
+	if (vp_top > 0) {
+		vertices[0] = 0;  vertices[1] = 0;  vertices[2] = 0;  vertices[3] = 0;
+		vertices[4] = (float)screen_w;  vertices[5] = 0;  vertices[6] = 1;  vertices[7] = 0;
+		vertices[8] = 0;  vertices[9] = vp_top;  vertices[10] = 0;  vertices[11] = vp_top / (float)screen_h;
+		vertices[12] = (float)screen_w;  vertices[13] = vp_top;  vertices[14] = 1;  vertices[15] = vp_top / (float)screen_h;
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STREAM_DRAW);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+	}
+
+	if (vp_bottom < screen_h) {
+		vertices[0] = 0;  vertices[1] = vp_bottom;  vertices[2] = 0;  vertices[3] = vp_bottom / (float)screen_h;
+		vertices[4] = (float)screen_w;  vertices[5] = vp_bottom;  vertices[6] = 1;  vertices[7] = vp_bottom / (float)screen_h;
+		vertices[8] = 0;  vertices[9] = (float)screen_h;  vertices[10] = 0;  vertices[11] = 1;
+		vertices[12] = (float)screen_w;  vertices[13] = (float)screen_h;  vertices[14] = 1;  vertices[15] = 1;
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STREAM_DRAW);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+	}
+
+	if (vp_left > 0) {
+		vertices[0] = 0;  vertices[1] = vp_top;  vertices[2] = 0;  vertices[3] = vp_top / (float)screen_h;
+		vertices[4] = vp_left;  vertices[5] = vp_top;  vertices[6] = vp_left / (float)screen_w;  vertices[7] = vp_top / (float)screen_h;
+		vertices[8] = 0;  vertices[9] = vp_bottom;  vertices[10] = 0;  vertices[11] = vp_bottom / (float)screen_h;
+		vertices[12] = vp_left;  vertices[13] = vp_bottom;  vertices[14] = vp_left / (float)screen_w;  vertices[15] = vp_bottom / (float)screen_h;
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STREAM_DRAW);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+	}
+
+	if (vp_right < screen_w) {
+		vertices[0] = vp_right;  vertices[1] = vp_top;  vertices[2] = vp_right / (float)screen_w;  vertices[3] = vp_top / (float)screen_h;
+		vertices[4] = (float)screen_w;  vertices[5] = vp_top;  vertices[6] = 1;  vertices[7] = vp_top / (float)screen_h;
+		vertices[8] = vp_right;  vertices[9] = vp_bottom;  vertices[10] = vp_right / (float)screen_w;  vertices[11] = vp_bottom / (float)screen_h;
+		vertices[12] = (float)screen_w;  vertices[13] = vp_bottom;  vertices[14] = 1;  vertices[15] = vp_bottom / (float)screen_h;
+		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
+		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STREAM_DRAW);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
+	}
+
+	glDisableVertexAttribArray(0);
+	glDisableVertexAttribArray(1);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glBindVertexArray(0);
+	glBindTexture(GL_TEXTURE_2D, 0);
+	glUseProgram(0);
 
 	gl_check_err();
 }
