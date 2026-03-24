@@ -129,6 +129,9 @@ struct gl_data {
 	struct gl_shader border_blur_shader;
 	struct gl_shader kawase_down_shader;
 	struct gl_shader kawase_up_shader;
+	GLint border_blur_viewport_loc;
+	GLint border_blur_corner_radius_loc;
+	GLint border_blur_screen_size_loc;
 };
 
 typedef struct session session_t;

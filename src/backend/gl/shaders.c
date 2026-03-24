@@ -292,9 +292,11 @@ const char border_blur_vert[] = GLSL(330,
 	layout(location = UNIFORM_PROJECTION_LOC)
 	uniform mat4 projection;
 	out vec2 texcoord;
+	out vec2 screen_pos;
 	void main() {
 		gl_Position = projection * vec4(in_coord, 0.0, 1.0);
 		texcoord = in_texcoord;
+		screen_pos = in_coord;
 	}
 );
 
@@ -303,11 +305,34 @@ const char border_blur_frag[] = GLSL(330,
 	uniform sampler2D blur_tex;
 	layout(location = UNIFORM_OPACITY_LOC)
 	uniform float darkness;
+	uniform vec4 viewport_rect;
+	uniform float corner_radius;
+	uniform vec2 screen_size;
 	in vec2 texcoord;
+	in vec2 screen_pos;
 	out vec4 out_color;
+
+	float rounded_rect_sdf(vec2 p, vec2 half_size, float radius) {
+		vec2 d = abs(p) - half_size + vec2(radius);
+		return length(max(d, 0.0)) - radius;
+	}
+
 	void main() {
+		vec2 pos_ydown = vec2(screen_pos.x, screen_size.y - screen_pos.y);
+		
+		vec2 vp_center = (viewport_rect.xy + viewport_rect.zw) * 0.5;
+		vec2 vp_half_size = (viewport_rect.zw - viewport_rect.xy) * 0.5;
+		
+		float dist = rounded_rect_sdf(pos_ydown - vp_center, vp_half_size, corner_radius);
+		
+		if (dist < -1.0) {
+			discard;
+		}
+		
+		float alpha = smoothstep(-1.0, 1.0, dist);
+		
 		vec4 c = texture(blur_tex, texcoord);
-		out_color = vec4(c.rgb * (1.0 - darkness * 0.4), c.a);
+		out_color = vec4(c.rgb * (1.0 - darkness * 0.4), c.a) * alpha;
 	}
 );
 

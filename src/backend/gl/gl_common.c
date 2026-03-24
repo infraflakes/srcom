@@ -1231,6 +1231,9 @@ bool gl_init(struct gl_data *gd, session_t *ps) {
 	glUseProgram(gd->border_blur_shader.prog);
 	glUniform1i(UNIFORM_TEX_LOC, 0);
 	glUniformMatrix4fv(UNIFORM_PROJECTION_LOC, 1, false, projection_matrix[0]);
+	gd->border_blur_viewport_loc = glGetUniformLocation(gd->border_blur_shader.prog, "viewport_rect");
+	gd->border_blur_corner_radius_loc = glGetUniformLocation(gd->border_blur_shader.prog, "corner_radius");
+	gd->border_blur_screen_size_loc = glGetUniformLocation(gd->border_blur_shader.prog, "screen_size");
 	glUseProgram(0);
 
 	gd->kawase_down_shader.prog = gl_create_program_from_str(kawase_down_vert, kawase_down_frag);
@@ -1319,12 +1322,10 @@ void gl_draw_zoom_border_blur(struct gl_data *gd) {
 	float cx = (float)ps->srwm_center_x;
 	float cy = (float)ps->srwm_center_y;
 
-	float vp_half_w = (float)screen_w * zoom / 2.0f;
-	float vp_half_h = (float)screen_h * zoom / 2.0f;
-	float vp_left = cx - vp_half_w;
-	float vp_right = cx + vp_half_w;
-	float vp_top = cy - vp_half_h;
-	float vp_bottom = cy + vp_half_h;
+	float vp_left = cx + (0.0f - cx) * zoom;
+	float vp_right = cx + ((float)screen_w - cx) * zoom;
+	float vp_top = cy + (0.0f - cy) * zoom;
+	float vp_bottom = cy + ((float)screen_h - cy) * zoom;
 
 	vp_left = fmaxf(0, vp_left);
 	vp_top = fmaxf(0, vp_top);
@@ -1432,72 +1433,23 @@ void gl_draw_zoom_border_blur(struct gl_data *gd) {
 	glUseProgram(gd->border_blur_shader.prog);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, gd->border_blur_textures[0]);
-	glUniform1f(UNIFORM_OPACITY_LOC, 0.3f);
+	glUniform1f(UNIFORM_OPACITY_LOC, 0.7f); // set darkness value for border blur
 
-	GLfloat vertices[4 * 4];
-	GLuint indices[] = {0, 1, 2, 2, 1, 3};
+	glUniform4f(gd->border_blur_viewport_loc, vp_left, vp_top, vp_right, vp_bottom);
+	glUniform1f(gd->border_blur_corner_radius_loc, 20.0f);
+	glUniform2f(gd->border_blur_screen_size_loc, (float)screen_w, (float)screen_h);
 
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
-						  (void *)(2 * sizeof(float)));
+	GLfloat border_fsq[] = {
+		0,              0,                  0, 1,
+		(float)screen_w, 0,                 1, 1,
+		0,              (float)screen_h,    0, 0,
+		(float)screen_w, (float)screen_h,   1, 0,
+	};
+	GLuint border_indices[] = {0, 1, 2, 2, 1, 3};
 
-	if (vp_top > 0) {
-		float gl_y_bottom = (float)screen_h;
-		float gl_y_top = (float)screen_h - vp_top;
-		float tv_bottom = 0;
-		float tv_top = vp_top / (float)screen_h;
-		vertices[0] = 0;              vertices[1] = gl_y_top;    vertices[2] = 0;  vertices[3] = tv_top;
-		vertices[4] = (float)screen_w; vertices[5] = gl_y_top;    vertices[6] = 1;  vertices[7] = tv_top;
-		vertices[8] = 0;              vertices[9] = gl_y_bottom;  vertices[10] = 0; vertices[11] = tv_bottom;
-		vertices[12] = (float)screen_w; vertices[13] = gl_y_bottom; vertices[14] = 1; vertices[15] = tv_bottom;
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STREAM_DRAW);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
-	}
-
-	if (vp_bottom < screen_h) {
-		float gl_y_bottom = 0;
-		float gl_y_top = (float)screen_h - vp_bottom;
-		float tv_bottom = 1;
-		float tv_top = vp_bottom / (float)screen_h;
-		vertices[0] = 0;              vertices[1] = gl_y_bottom;  vertices[2] = 0;  vertices[3] = tv_bottom;
-		vertices[4] = (float)screen_w; vertices[5] = gl_y_bottom;  vertices[6] = 1;  vertices[7] = tv_bottom;
-		vertices[8] = 0;              vertices[9] = gl_y_top;      vertices[10] = 0; vertices[11] = tv_top;
-		vertices[12] = (float)screen_w; vertices[13] = gl_y_top;    vertices[14] = 1; vertices[15] = tv_top;
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STREAM_DRAW);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
-	}
-
-	if (vp_left > 0) {
-		float gl_y_bottom = (float)screen_h - vp_bottom;
-		float gl_y_top = (float)screen_h - vp_top;
-		float tv_bottom = vp_bottom / (float)screen_h;
-		float tv_top = vp_top / (float)screen_h;
-		vertices[0] = 0;       vertices[1] = gl_y_bottom;  vertices[2] = 0;                            vertices[3] = tv_bottom;
-		vertices[4] = vp_left;  vertices[5] = gl_y_bottom;  vertices[6] = vp_left / (float)screen_w;    vertices[7] = tv_bottom;
-		vertices[8] = 0;       vertices[9] = gl_y_top;      vertices[10] = 0;                           vertices[11] = tv_top;
-		vertices[12] = vp_left; vertices[13] = gl_y_top;     vertices[14] = vp_left / (float)screen_w;   vertices[15] = tv_top;
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STREAM_DRAW);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
-	}
-
-	if (vp_right < screen_w) {
-		float gl_y_bottom = (float)screen_h - vp_bottom;
-		float gl_y_top = (float)screen_h - vp_top;
-		float tv_bottom = vp_bottom / (float)screen_h;
-		float tv_top = vp_top / (float)screen_h;
-		vertices[0] = vp_right;        vertices[1] = gl_y_bottom;  vertices[2] = vp_right / (float)screen_w;  vertices[3] = tv_bottom;
-		vertices[4] = (float)screen_w;  vertices[5] = gl_y_bottom;  vertices[6] = 1;                           vertices[7] = tv_bottom;
-		vertices[8] = vp_right;        vertices[9] = gl_y_top;      vertices[10] = vp_right / (float)screen_w; vertices[11] = tv_top;
-		vertices[12] = (float)screen_w; vertices[13] = gl_y_top;     vertices[14] = 1;                          vertices[15] = tv_top;
-		glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
-		glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STREAM_DRAW);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
-	}
+	glBufferData(GL_ARRAY_BUFFER, sizeof(border_fsq), border_fsq, GL_STREAM_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(border_indices), border_indices, GL_STREAM_DRAW);
+	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
 
 	glDisableVertexAttribArray(0);
 	glDisableVertexAttribArray(1);
