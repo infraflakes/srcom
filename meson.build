@@ -105,11 +105,9 @@ endif
 test_h_dep = subproject('test.h').get_variable('test_h_dep')
 
 subdir('src')
-subdir('man')
 subdir('tools')
 subdir('include')
 
-install_data('bin/srcom-trans', install_dir: get_option('bindir'))
 install_data('srcom.desktop', install_dir: 'share/applications')
 install_data('srcom.desktop', install_dir: get_option('sysconfdir') / 'xdg' / 'autostart')
 
@@ -121,13 +119,3 @@ srcom_pc = pkgconf.generate(
   requires: [ 'pixman-1', 'xcb' ],
   subdirs: 'srcom',
 )
-
-if get_option('compton')
-	install_data('compton.desktop', install_dir: 'share/applications')
-	install_data('media/icons/48x48/compton.png',
-                     install_dir: 'share/icons/hicolor/48x48/apps')
-	install_data('media/compton.svg',
-                     install_dir: 'share/icons/hicolor/scalable/apps')
-
-	meson.add_install_script('meson/install.sh')
-endif
