@@ -477,7 +477,6 @@ void srwm_update_cursor_image(session_t *ps) {
 	ps->cursor_height = reply->height;
 
 	if (reply->width > 0 && reply->height > 0) {
-		uint32_t cursor_len = reply->width * reply->height;
 		uint32_t *pixels = (uint32_t *)((char *)reply + sizeof(xcb_xfixes_get_cursor_image_reply_t));
 		if (ps->backend_data) {
 			struct gl_data *gd = (struct gl_data *)ps->backend_data;

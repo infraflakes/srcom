@@ -79,15 +79,13 @@ endif
 
 deps = []
 
+cflags += ['-DCONFIG_OPENGL']
+deps += [dependency('epoxy', required: true)]
+
 if get_option('regex')
 	pcre = dependency('libpcre2-8', required: true)
 	cflags += ['-DCONFIG_REGEX_PCRE']
 	deps += [pcre]
-endif
-
-if get_option('opengl')
-	cflags += ['-DCONFIG_OPENGL']
-	deps += [dependency('epoxy', required: true)]
 endif
 
 if get_option('unittest')

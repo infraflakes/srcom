@@ -517,7 +517,6 @@ struct debug_options_entry {
 // clang-format off
 const char *vblank_scheduler_str[] = {
 	[VBLANK_SCHEDULER_PRESENT] = "present",
-	[VBLANK_SCHEDULER_SGI_VIDEO_SYNC] = "sgi_video_sync",
 	[LAST_VBLANK_SCHEDULER] = NULL
 };
 static const struct debug_options_entry debug_options_entries[] = {

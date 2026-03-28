@@ -11,9 +11,7 @@
 #include <time.h>
 #include <unistd.h>
 
-#ifdef CONFIG_OPENGL
 #include <epoxy/gl.h>
-#endif
 
 #include "compiler.h"
 #include "log.h"
@@ -338,8 +336,6 @@ struct log_target *stderr_logger_new(void) {
 	return &ret->tgt;
 }
 
-#ifdef CONFIG_OPENGL
-
 static void gl_string_marker_logger_write(struct log_target *tgt attr_unused,
                                           const char *str, size_t len) {
 	// strip newlines at the end of the string
@@ -366,11 +362,5 @@ struct log_target *gl_string_marker_logger_new(void) {
 	ret->ops = &gl_string_marker_logger_ops;
 	return ret;
 }
-
-#else
-struct log_target *gl_string_marker_logger_new(void) {
-	return NULL;
-}
-#endif
 
 // vim: set noet sw=8 ts=8:

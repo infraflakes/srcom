@@ -17,13 +17,7 @@ void apply_driver_workarounds(struct session *ps attr_unused, enum driver driver
 }
 
 enum vblank_scheduler_type choose_vblank_scheduler(enum driver driver attr_unused) {
-	enum vblank_scheduler_type type = VBLANK_SCHEDULER_PRESENT;
-#ifdef CONFIG_OPENGL
-	if (driver & DRIVER_NVIDIA) {
-		type = VBLANK_SCHEDULER_SGI_VIDEO_SYNC;
-	}
-#endif
-	return type;
+	return VBLANK_SCHEDULER_PRESENT;
 }
 
 enum driver detect_driver(xcb_connection_t *c, backend_t *backend_data, xcb_window_t window) {

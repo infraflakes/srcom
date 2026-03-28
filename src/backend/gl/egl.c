@@ -115,8 +115,6 @@ static backend_t *egl_init(session_t *ps, xcb_window_t target) {
 		return NULL;
 	}
 
-	log_warn("The egl backend is still experimental, use with care.");
-
 	gd = ccalloc(1, struct egl_data);
 	gd->display = eglGetPlatformDisplayEXT(EGL_PLATFORM_X11_EXT, ps->c.dpy,
 	                                       (EGLint[]){

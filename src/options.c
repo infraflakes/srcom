@@ -378,11 +378,7 @@ static bool store_backend(const struct srcom_option * /*opt*/, const struct srco
 #define WINDOW_SHADER_RULE                                                               \
 	{.parse_prefix = parse_window_shader_prefix_with_cwd, .free_value = free}
 
-#ifdef CONFIG_OPENGL
-#define BACKENDS "xrender, glx"
-#else
-#define BACKENDS "xrender"
-#endif
+#define BACKENDS "egl"
 
 // clang-format off
 static const struct option *longopts = NULL;

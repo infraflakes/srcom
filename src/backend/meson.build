@@ -5,7 +5,4 @@ srcs += [
     'driver.c',
   ),
 ]
-# enable opengl
-if get_option('opengl')
-  subdir('gl')
-endif
+subdir('gl')

@@ -54,8 +54,6 @@ typedef struct win_option {
 enum vblank_scheduler_type {
 	/// X Present extension based vblank events
 	VBLANK_SCHEDULER_PRESENT,
-	/// GLX_SGI_video_sync based vblank events
-	VBLANK_SCHEDULER_SGI_VIDEO_SYNC,
 	/// An invalid scheduler, served as a scheduler count, and
 	/// as a sentinel value.
 	LAST_VBLANK_SCHEDULER,
