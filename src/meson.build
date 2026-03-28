@@ -11,9 +11,7 @@ srcs = [
 		'c2.c',
 		'config.c',
 		'config_libconfig.c',
-		'diagnostic.c',
 		'event.c',
-		'inspect.c',
 		'log.c',
 		'options.c',
 		'srcom.c',
@@ -29,7 +27,6 @@ required_xcb_packages = [
 	'xcb',
 	'xcb-composite',
 	'xcb-damage',
-	'xcb-glx',
 	'xcb-present',
 	'xcb-randr',
 	'xcb-render',
@@ -93,12 +90,6 @@ if get_option('opengl')
 	deps += [dependency('epoxy', required: true)]
 endif
 
-if get_option('dbus')
-	cflags += ['-DCONFIG_DBUS']
-	deps += [dependency('dbus-1', required: true)]
-	srcs += ['dbus.c', 'rtkit.c']
-endif
-
 if get_option('unittest')
 	cflags += ['-DUNIT_TEST']
 endif
@@ -155,19 +146,4 @@ srcom = executable(
 
 if get_option('unittest')
 	test('srcom unittest', srcom, args: ['--unittest'])
-endif
-
-install_symlink('srcom-inspect', install_dir: 'bin', pointing_to: 'srcom')
-
-if cc.has_argument('-fsanitize=fuzzer')
-	c2_fuzz = executable(
-		'c2_fuzz',
-		srcs + ['fuzzer/c2.c'],
-		c_args: cflags + ['-fsanitize=fuzzer', '-DCONFIG_FUZZER'],
-		link_args: ['-fsanitize=fuzzer'],
-		dependencies: [base_deps, deps, test_h_dep],
-		build_by_default: false,
-		install: false,
-		include_directories: srcom_inc,
-	)
 endif

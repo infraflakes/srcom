@@ -200,11 +200,6 @@ typedef struct session {
 	// === Atoms ===
 	struct atom *atoms;
 
-#ifdef CONFIG_DBUS
-	// === DBus related ===
-	struct cdbus_data *dbus_data;
-#endif
-
 	// === srwm canvas zoom ===
 	/// Current zoom level (1.0 = no zoom)
 	float srwm_zoom;

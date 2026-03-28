@@ -434,13 +434,6 @@ static const struct srcom_option srcom_options[] = {
     [284] = {"blur-background-frame"    , ENABLE(blur_background_frame)    , "Blur background of windows when the window frame is not opaque. Implies "
                                                                              "--blur-background."},
     [285] = {"blur-background-fixed"    , ENABLE(blur_background_fixed)    , "Use fixed blur strength instead of adjusting according to window opacity."},
-#ifdef CONFIG_DBUS
-    [286] = {"dbus"                     , ENABLE(dbus)                     , "Enable remote control via D-Bus. See the D-BUS API section in the man page "
-                                                                             "for more details."},
-#endif
-    [311] = {"vsync-use-glfinish"       , ENABLE(vsync_use_glfinish)},
-    [313] = {"xrender-sync-fence"       , ENABLE(xrender_sync_fence)       , "Additionally use X Sync fence to sync clients' draw calls. Needed on "
-                                                                             "nvidia-drivers with GLX backend for some users."},
     [315] = {"no-fading-destroyed-argb" , ENABLE(no_fading_destroyed_argb) , "Do not fade destroyed ARGB windows with WM frame. Workaround bugs in Openbox, "
                                                                              "Fluxbox, etc."},
     [316] = {"force-win-blend"          , ENABLE(force_win_blend)          , "Force all windows to be painted with blending. Useful if you have a custom "
@@ -454,8 +447,6 @@ static const struct srcom_option srcom_options[] = {
                                                                              "windows. Affects --shadow-ignore-shaped, --unredir-if-possible, and "
                                                                              "possibly others. You need to turn this on manually if you want to match "
                                                                              "against rounded_corners in conditions."},
-    [298] = {"glx-no-rebind-pixmap"     , WARN_DEPRECATED(ENABLE(glx_no_rebind_pixmap))},
-    [291] = {"glx-no-stencil"           , WARN_DEPRECATED(ENABLE(glx_no_stencil))},
     [325] = {"no-vsync"                 , DISABLE(vsync)                   , "Disable VSync"},
     [327] = {"transparent-clipping"     , ENABLE(transparent_clipping)     , "Make transparent windows clip other windows like non-transparent windows do, "
                                                                              "instead of blending on top of them"},
@@ -463,17 +454,13 @@ static const struct srcom_option srcom_options[] = {
                                                                              "rendered screen. Reduces banding artifacts, but might cause performance "
                                                                              "degradation. Only works with OpenGL."},
     [341] = {"no-frame-pacing"          , DISABLE(frame_pacing)            , "Disable frame pacing. This might increase the latency."},
-    [733] = {"legacy-backends"          , WARN_DEPRECATED(ENABLE(use_legacy_backends)), NULL},
     [800] = {"monitor-repaint"          , ENABLE(monitor_repaint)          , "Highlight the updated area of the screen. For debugging."},
-    [801] = {"diagnostics"              , ENABLE(print_diagnostics)        , "Print diagnostic information"},
     [802] = {"debug-mode"               , ENABLE(debug_mode)               , "Render into a separate window, and don't take over the screen. Useful when "
                                                                              "you want to attach a debugger to srcom"},
     [803] = {"no-ewmh-fullscreen"       , ENABLE(no_ewmh_fullscreen)       , "Do not use EWMH to detect fullscreen windows. Reverts to checking if a "
                                                                              "window is fullscreen based only on its size and coordinates."},
     [804] = {"realtime"                 , ENABLE(use_realtime_scheduling)  , "Enable realtime scheduling. This might reduce latency, but might also cause "
                                                                              "other issues. Disable this if you see the compositor being killed."},
-    [805] = {"monitor"                  , ENABLE(inspect_monitor)          , "For srcom-inspect, run in a loop and dump information every time something "
-                                                                             "changed about a window.", "srcom-inspect"},
 
     // Flags that takes an argument
     ['r'] = {"shadow-radius"               , INTEGER(shadow_radius, 0, INT_MAX)             , "The blur radius for shadows. (default 12)"},

@@ -11,7 +11,6 @@
 
 #include "compiler.h"
 #include "misc.h"
-#include "rtkit.h"
 #include "str.h"
 
 /// Report allocation failure without allocating memory
@@ -99,12 +98,7 @@ void set_rr_scheduling(void) {
 
 	int priority = sched_get_priority_min(SCHED_RR);
 
-	if (rtkit_make_realtime(0, priority)) {
-		log_info("Set realtime priority to %d with rtkit.", priority);
-		return;
-	}
-
-	// Fallback to use pthread_setschedparam
+	// Use pthread_setschedparam for realtime scheduling
 	struct sched_param param;
 	int old_policy;
 	int ret = pthread_getschedparam(pthread_self(), &old_policy, &param);

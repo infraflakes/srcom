@@ -28,7 +28,6 @@
 #include <unistd.h>
 #include <xcb/composite.h>
 #include <xcb/damage.h>
-#include <xcb/glx.h>
 #include <xcb/present.h>
 #include <xcb/randr.h>
 #include <xcb/render.h>
@@ -43,14 +42,12 @@
 #include "api_internal.h"
 #include "atom.h"
 #include "backend/backend.h"
+#include "backend/gl/gl_common.h"
 #include "c2.h"
 #include "common.h"
 #include "compiler.h"
 #include "config.h"
-#include "dbus.h"
-#include "diagnostic.h"
 #include "event.h"
-#include "inspect.h"
 #include "log.h"
 #include "options.h"
 #include "srcom.h"
@@ -425,7 +422,6 @@ struct gl_data;
 void srwm_update_cursor_image(session_t *ps);
 void srwm_enable_software_cursor(session_t *ps);
 void srwm_disable_software_cursor(session_t *ps);
-static void gl_update_cursor_texture(struct gl_data *gd, uint32_t *pixels, int width, int height);
 
 void srwm_read_canvas_state(session_t *ps) {
 	winprop_t prop = x_get_prop(&ps->c, ps->c.screen_info->root,
@@ -1232,12 +1228,6 @@ xcb_window_t session_get_target_window(session_t *ps) {
 	}
 	return ps->overlay != XCB_NONE ? ps->overlay : ps->c.screen_info->root;
 }
-
-#ifdef CONFIG_DBUS
-struct cdbus_data *session_get_cdbus(struct session *ps) {
-	return ps->dbus_data;
-}
-#endif
 
 uint8_t session_redirection_mode(session_t *ps) {
 	if (ps->o.debug_mode) {
@@ -2095,10 +2085,6 @@ static const session_t s_def = {
 
     .last_msc = 0,
 
-#ifdef CONFIG_DBUS
-    .dbus_data = NULL,
-#endif
-
     .srwm_zoom = 1.0f,
     .srwm_center_x = 0,
     .srwm_center_y = 0,
@@ -2149,17 +2135,6 @@ static const session_t s_def = {
 	}
 
 	show_config_warning_message_box(&ps->o);
-
-	const char *basename = strrchr(argv[0], '/') ? strrchr(argv[0], '/') + 1 : argv[0];
-
-	if (strcmp(basename, "srcom-inspect") == 0) {
-		ps->o.backend = backend_find("dummy");
-		ps->o.print_diagnostics = false;
-		ps->o.dbus = false;
-		if (!ps->o.inspect_monitor) {
-			ps->o.inspect_win = inspect_select_window(&ps->c);
-		}
-	}
 
 	ps->window_options_default = win_options_from_config(&ps->o);
 
@@ -2238,20 +2213,9 @@ static const session_t s_def = {
 		    ps->c.c, xcb_sync_create_fence_checked(
 		                 ps->c.c, ps->c.screen_info->root, ps->sync_fence, 0));
 		if (e) {
-			if (ps->o.xrender_sync_fence) {
-				log_error_x_error(&ps->c, e,
-				                  "Failed to create a XSync fence. "
-				                  "xrender-sync-fence will be "
-				                  "disabled");
-				ps->o.xrender_sync_fence = false;
-			}
 			ps->sync_fence = XCB_NONE;
 			free(e);
 		}
-	} else if (ps->o.xrender_sync_fence) {
-		log_error("XSync extension not found. No XSync fence sync is "
-		          "possible. (xrender-sync-fence can't be enabled)");
-		ps->o.xrender_sync_fence = false;
 	}
 
 	if (ps->o.crop_shadow_to_monitor && !ps->c.e.has_randr) {
@@ -2279,13 +2243,6 @@ static const session_t s_def = {
 
 	ps->drivers = detect_driver(ps->c.c, ps->backend_data, ps->c.screen_info->root);
 	apply_driver_workarounds(ps, ps->drivers);
-
-	if (ps->o.print_diagnostics) {
-		ps->root_width = ps->c.screen_info->width_in_pixels;
-		ps->root_height = ps->c.screen_info->height_in_pixels;
-		print_diagnostics(ps, config_file, compositor_running);
-		exit(0);
-	}
 
 	if (ps->o.config_file_path) {
 		ps->file_watch_handle = file_watch_init(ps->loop);
@@ -2338,20 +2295,6 @@ static const session_t s_def = {
 	// handled and before we going to sleep.
 	ev_set_priority(&ps->event_check, EV_MINPRI);
 	ev_prepare_start(ps->loop, &ps->event_check);
-
-	// Initialize DBus. We need to do this early, because add_win might call dbus
-	// functions
-	if (ps->o.dbus) {
-#ifdef CONFIG_DBUS
-		ps->dbus_data = cdbus_init(ps, DisplayString(ps->c.dpy));
-		if (!ps->dbus_data) {
-			ps->o.dbus = false;
-		}
-#else
-		log_fatal("DBus support not compiled in!");
-		exit(1);
-#endif
-	}
 
 	ps->wm = wm_new();
 	wm_import_start(ps->wm, &ps->c, ps->atoms, ps->c.screen_info->root, NULL);
@@ -2481,15 +2424,6 @@ static void session_destroy(session_t *ps) {
 	// Stop listening to events on root window
 	xcb_change_window_attributes(ps->c.c, ps->c.screen_info->root, XCB_CW_EVENT_MASK,
 	                             (const uint32_t[]){0});
-
-#ifdef CONFIG_DBUS
-	// Kill DBus connection
-	if (ps->o.dbus) {
-		assert(ps->dbus_data);
-		cdbus_destroy(ps->dbus_data);
-		ps->dbus_data = NULL;
-	}
-#endif
 
 	wm_stack_foreach(ps->wm, cursor) {
 		auto w = wm_ref_deref(cursor);

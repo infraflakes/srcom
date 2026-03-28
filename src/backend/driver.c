@@ -13,10 +13,7 @@
 #include "driver.h"
 
 /// Apply driver specified global workarounds. It's safe to call this multiple times.
-void apply_driver_workarounds(struct session *ps, enum driver driver) {
-	if (driver & DRIVER_NVIDIA) {
-		ps->o.xrender_sync_fence = true;
-	}
+void apply_driver_workarounds(struct session *ps attr_unused, enum driver driver attr_unused) {
 }
 
 enum vblank_scheduler_type choose_vblank_scheduler(enum driver driver attr_unused) {

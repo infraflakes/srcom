@@ -646,7 +646,6 @@ bool load_plugin(const char *name, const char *include_dir) {
 bool parse_config(options_t *opt, const char *config_file) {
 	// clang-format off
 	*opt = (struct options){
-	    .glx_no_stencil = false,
 	    .mark_wmwin_focused = false,
 	    .mark_ovredir_focused = false,
 	    .detect_rounded_corners = false,
@@ -656,7 +655,6 @@ bool parse_config(options_t *opt, const char *config_file) {
 	    .unredir_if_possible_delay = 0,
 	    .redirected_force = UNSET,
 	    .stoppaint_force = UNSET,
-	    .dbus = false,
 	    .benchmark = 0,
 	    .benchmark_wid = XCB_NONE,
 	    .logpath = NULL,

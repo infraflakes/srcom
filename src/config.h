@@ -303,29 +303,15 @@ typedef struct options {
 	struct list_node included_config_files;
 	// === Debugging ===
 	bool monitor_repaint;
-	bool print_diagnostics;
 	/// Render to a separate window instead of taking over the screen
 	bool debug_mode;
-	/// For srcom-inspect only, dump windows in a loop
-	bool inspect_monitor;
-	xcb_window_t inspect_win;
 	// === General ===
-	/// Use the legacy backends?
-	bool use_legacy_backends;
 	/// Path to write PID to.
 	char *write_pid_path;
 	/// Name of the backend
 	struct backend_info *backend;
 	/// Log level.
 	int log_level;
-	/// Whether to sync X drawing with X Sync fence to avoid certain delay
-	/// issues with GLX backend.
-	bool xrender_sync_fence;
-	/// Whether to avoid using stencil buffer under GLX backend. Might be
-	/// unsafe.
-	bool glx_no_stencil;
-	/// Whether to avoid rebinding pixmap on window damage.
-	bool glx_no_rebind_pixmap;
 	/// Whether to detect rounded corners.
 	bool detect_rounded_corners;
 	/// Force painting of window content with blending.
@@ -344,8 +330,6 @@ typedef struct options {
 	switch_t redirected_force;
 	/// Whether to stop painting. Controlled through D-Bus.
 	switch_t stoppaint_force;
-	/// Whether to enable D-Bus support.
-	bool dbus;
 	/// Path to log file.
 	char *logpath;
 	/// Number of cycles to paint in benchmark mode. 0 for disabled.
@@ -367,9 +351,6 @@ typedef struct options {
 	// === VSync & software optimization ===
 	/// VSync method to use;
 	bool vsync;
-	/// Whether to use glFinish() instead of glFlush() for (possibly) better
-	/// VSync yet probably higher CPU usage.
-	bool vsync_use_glfinish;
 	/// Whether use damage information to help limit the area to paint
 	bool use_damage;
 	/// Disable frame pacing

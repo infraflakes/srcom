@@ -23,8 +23,6 @@
 #include "common.h"
 #include "compiler.h"
 #include "config.h"
-#include "dbus.h"
-#include "inspect.h"
 #include "log.h"
 #include "srcom.h"
 #include "region.h"
@@ -404,14 +402,6 @@ void win_process_secondary_flags(session_t *ps, struct win *w) {
 		          win_id(w), w->name, w->is_focused, new_focused);
 		w->is_focused = new_focused;
 		win_set_flags(w, WIN_FLAGS_FACTOR_CHANGED);
-		// Send D-Bus signal
-		if (ps->o.dbus) {
-			if (new_focused) {
-				cdbus_ev_win_focusin(session_get_cdbus(ps), w);
-			} else {
-				cdbus_ev_win_focusout(session_get_cdbus(ps), w);
-			}
-		}
 	}
 	if (new_group_focused != w->is_group_focused) {
 		log_debug("Window %#010x (%s) group focus state changed from %d to %d",
@@ -941,23 +931,14 @@ void win_update_opacity_rule(session_t *ps, struct win *w) {
 }
 
 static bool
-win_update_rule(struct session *ps, struct win *w, const c2_condition *rule, bool inspect) {
+win_update_rule(struct session *ps, struct win *w, const c2_condition *rule) {
 	void *pdata = NULL;
-	if (inspect) {
-		printf("    %s ... ", c2_condition_to_str(rule));
-	}
 	bool matched = c2_match_one(ps->c2_state, w, rule, &pdata);
-	if (inspect) {
-		printf("%s\n", matched ? ANSI("1;32") "matched\033[0m" : "not matched");
-	}
 	if (!matched) {
 		return false;
 	}
 
 	auto wopts_next = (struct window_maybe_options *)pdata;
-	if (inspect) {
-		inspect_dump_window_maybe_options(*wopts_next);
-	}
 	w->options = win_maybe_options_fold(*wopts_next, w->options);
 	return false;
 }
@@ -969,18 +950,11 @@ win_update_rule(struct session *ps, struct win *w, const c2_condition *rule, boo
  */
 void win_on_factor_change(session_t *ps, struct win *w) {
 	auto wid = win_client_id(w, /*fallback_to_self=*/true);
-	bool inspect = (ps->o.inspect_win != XCB_NONE && win_id(w) == ps->o.inspect_win) ||
-	               ps->o.inspect_monitor;
 	log_debug("Window %#010x, client %#010x (%s) factor change", win_id(w), wid, w->name);
 	c2_window_state_update(ps->c2_state, &w->c2_state, ps->c.c, wid, win_id(w));
 	// Focus and is_fullscreen needs to be updated first, as other rules might depend
 	// on the focused state of the window
 	win_update_is_fullscreen(ps, w);
-
-	if (ps->o.inspect_monitor) {
-		printf("Window %#010x (Client %#010x):\n======\n\n", win_id(w),
-		       win_client_id(w, /*fallback_to_self=*/true));
-	}
 
 	assert(w->window_types != 0);
 	if (list_is_empty(&ps->o.rules)) {
@@ -1037,11 +1011,8 @@ void win_on_factor_change(session_t *ps, struct win *w) {
 	} else {
 		w->options = WIN_MAYBE_OPTIONS_DEFAULT;
 		assert(w->state == WSTATE_MAPPED);
-		if (inspect) {
-			printf("Checking " BOLD("window rules") ":\n");
-		}
 		c2_condition_list_foreach_rev(&ps->o.rules, i) {
-			win_update_rule(ps, w, i, inspect);
+			win_update_rule(ps, w, i);
 		}
 		if (safe_isnan(w->options.opacity) && w->has_opacity_prop) {
 			w->options.opacity = ((double)w->opacity_prop) / OPAQUE;
@@ -1062,14 +1033,6 @@ void win_on_factor_change(session_t *ps, struct win *w) {
 	    (win_id(w) == ps->debug_window ||
 	     (win_client_id(w, /*fallback_to_self=*/false) == ps->debug_window))) {
 		w->options.paint = TRI_FALSE;
-	}
-
-	if (inspect) {
-		inspect_dump_window(ps->c2_state, &ps->o, w);
-		printf("\n");
-		if (!ps->o.inspect_monitor) {
-			quit(ps);
-		}
 	}
 }
 
@@ -1735,21 +1698,6 @@ bool win_process_animation_and_state_change(struct session *ps, struct win *w, d
 	// Animation trigger priority:
 	//   state > position > size > opacity > color
 	if (old_state != w->state) {
-		// Send D-Bus signal
-		if (ps->o.dbus) {
-			switch (w->state) {
-			case WSTATE_UNMAPPED:
-				cdbus_ev_win_unmapped(session_get_cdbus(ps), w);
-				break;
-			case WSTATE_MAPPED:
-				cdbus_ev_win_mapped(session_get_cdbus(ps), w);
-				break;
-			case WSTATE_DESTROYED:
-				cdbus_ev_win_destroyed(session_get_cdbus(ps), w);
-				break;
-			}
-		}
-
 		switch (WSTATE_PAIR(old_state, w->state)) {
 		case WSTATE_PAIR(WSTATE_UNMAPPED, WSTATE_MAPPED):
 			trigger = w->in_openclose ? ANIMATION_TRIGGER_OPEN

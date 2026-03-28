@@ -105,17 +105,4 @@ endif
 test_h_dep = subproject('test.h').get_variable('test_h_dep')
 
 subdir('src')
-subdir('tools')
 subdir('include')
-
-install_data('srcom.desktop', install_dir: 'share/applications')
-install_data('srcom.desktop', install_dir: get_option('sysconfdir') / 'xdg' / 'autostart')
-
-pkgconf = import('pkgconfig')
-
-srcom_pc = pkgconf.generate(
-  name: 'srcom-api',
-  description: 'srcom API headers',
-  requires: [ 'pixman-1', 'xcb' ],
-  subdirs: 'srcom',
-)

@@ -1,1 +1,1 @@
-srcs += [ files('blur.c', 'egl.c', 'gl_common.c', 'glx.c', 'shaders.c') ]
+srcs += [ files('blur.c', 'egl.c', 'gl_common.c', 'shaders.c') ]
