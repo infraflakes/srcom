@@ -1,5 +1,7 @@
 # srcom
 
+> Development merged with [srwm](https://github.com/infraflakes/srwm)
+
 **srcom** is a compositor for X11, designed as the companion compositor for [srwm](https://github.com/infraflakes/srwm). It is a fork of [picom](https://github.com/yshui/picom) v13 with added support for srwm's true zoom feature via software cursor rendering and X atom-based IPC.
 
 ## Features
