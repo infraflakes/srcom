@@ -4,7 +4,7 @@
 #include <stddef.h>
 #include <uthash.h>
 
-#include <srcom/types.h>
+#include <picom/types.h>
 
 #include "command_builder.h"
 #include "common.h"
@@ -40,8 +40,7 @@ struct layout_manager {
 
 /// Compute layout of a layer from a window. Returns false if the window is not
 /// visible / should not be rendered. `out_layer` is modified either way.
-static bool layer_from_window(struct layer *out_layer, struct win *w, ivec2 size,
-                               float srwm_zoom, int srwm_cx, int srwm_cy, bool srwm_active) {
+static bool layer_from_window(struct layer *out_layer, struct win *w, ivec2 size) {
 	bool to_paint = false;
 	auto w_opts = win_options(w);
 	if (!w->ever_damaged || !w_opts.paint) {
@@ -91,31 +90,6 @@ static bool layer_from_window(struct layer *out_layer, struct win *w, ivec2 size
 		out_layer->shadow.size = (ivec2){};
 		out_layer->shadow_scale = SCALE_IDENTITY;
 	}
-
-	if (srwm_active && srwm_zoom != 1.0f) {  
-	if (!(w->window_types & (1U << WINTYPE_DESKTOP)) && (!w->a.override_redirect || (w->window_types & (1U << WINTYPE_DOCK)))) {
-        float wx = (float)out_layer->window.origin.x;  
-        float wy = (float)out_layer->window.origin.y;  
-        float cx = (float)srwm_cx;  
-        float cy = (float)srwm_cy;  
-        out_layer->window.origin = (ivec2){  
-            (int)(cx + (wx - cx) * srwm_zoom),  
-            (int)(cy + (wy - cy) * srwm_zoom)  
-        };  
-        out_layer->scale.x *= srwm_zoom;  
-        out_layer->scale.y *= srwm_zoom;  
-        if (w_opts.shadow) {  
-            float sx = (float)out_layer->shadow.origin.x;  
-            float sy = (float)out_layer->shadow.origin.y;  
-            out_layer->shadow.origin = (ivec2){  
-                (int)(cx + (sx - cx) * srwm_zoom),  
-                (int)(cy + (sy - cy) * srwm_zoom)  
-            };  
-            out_layer->shadow_scale.x *= srwm_zoom;  
-            out_layer->shadow_scale.y *= srwm_zoom;  
-        }  
-    }  
-}
 
 	struct ibox window_scaled = {
 	    .origin = out_layer->window.origin,
@@ -234,9 +208,7 @@ void layout_manager_free(struct layout_manager *lm) {
 //   above.
 
 void layout_manager_append_layout(struct layout_manager *lm, struct wm *wm,
-                                  uint64_t root_pixmap_generation, ivec2 size,
-                                  float srwm_zoom, int srwm_cx, int srwm_cy,
-                                  bool srwm_active) {
+                                  uint64_t root_pixmap_generation, ivec2 size) {
 	auto prev_layout = &lm->layouts[lm->current];
 	lm->current = (lm->current + 1) % lm->max_buffer_age;
 	auto layout = &lm->layouts[lm->current];
@@ -252,8 +224,7 @@ void layout_manager_append_layout(struct layout_manager *lm, struct wm *wm,
 			continue;
 		}
 		dynarr_resize(layout->layers, rank + 1, layer_init, layer_deinit);
-		if (!layer_from_window(&layout->layers[rank], (struct win *)w, size,
-		                       srwm_zoom, srwm_cx, srwm_cy, srwm_active)) {
+		if (!layer_from_window(&layout->layers[rank], (struct win *)w, size)) {
 			continue;
 		}
 

@@ -15,7 +15,7 @@
 #include "compiler.h"
 #include "config.h"
 #include "log.h"
-#include "srcom.h"
+#include "picom.h"
 #include "utils/misc.h"
 #include "x.h"
 
@@ -114,6 +114,8 @@ static backend_t *egl_init(session_t *ps, xcb_window_t target) {
 		log_error("X11 platform not available.");
 		return NULL;
 	}
+
+	log_warn("The egl backend is still experimental, use with care.");
 
 	gd = ccalloc(1, struct egl_data);
 	gd->display = eglGetPlatformDisplayEXT(EGL_PLATFORM_X11_EXT, ps->c.dpy,
@@ -286,8 +288,6 @@ err:
 static bool egl_present(backend_t *base) {
 	struct egl_data *gd = (void *)base;
 	gl_finish_render(&gd->gl);
-	gl_draw_zoom_border_blur(&gd->gl);
-	gl_draw_software_cursor(&gd->gl);
 	eglSwapBuffers(gd->display, gd->target_win);
 	return true;
 }

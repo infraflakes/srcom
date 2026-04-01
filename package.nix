@@ -34,10 +34,10 @@
 
 let
   versionFromMeson =
-    s: builtins.head (builtins.match "project\\('srcom',.*version: *'([0-9.]*)'.*" s);
+    s: builtins.head (builtins.match "project\\('picom',.*version: *'([0-9.]*)'.*" s);
 in
 stdenv.mkDerivation (finalAttrs: {
-  pname = "srcom";
+  pname = "picom";
   version = versionFromMeson (builtins.readFile ./meson.build);
 
   src = git-ignore-nix.lib.gitignoreSource ./.;
@@ -86,7 +86,7 @@ stdenv.mkDerivation (finalAttrs: {
     xorgproto
   ];
 
-  # Use "debugoptimized" instead of "debug" so perhaps srcom works better in
+  # Use "debugoptimized" instead of "debug" so perhaps picom works better in
   # normal usage too, not just temporary debugging.
   mesonBuildType = if withDebug then "debugoptimized" else "release";
   dontStrip = withDebug;
@@ -97,11 +97,11 @@ stdenv.mkDerivation (finalAttrs: {
 
   installFlags = [ "PREFIX=$(out)" ];
 
-  # In debug mode, also copy src directory to store. If you then run `gdb srcom`
-  # in the bin directory of srcom store path, gdb finds the source files.
+  # In debug mode, also copy src directory to store. If you then run `gdb picom`
+  # in the bin directory of picom store path, gdb finds the source files.
   postInstall =
     lib.optionalString withTools ''
-      wrapProgram $out/bin/srcom-trans \
+      wrapProgram $out/bin/picom-trans \
         --prefix PATH : ${lib.makeBinPath [ xwininfo ]}
     ''
     + lib.optionalString withDebug ''

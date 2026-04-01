@@ -10,7 +10,7 @@
 #include <xcb/xcb_event.h>
 #include <xcb/xproto.h>
 
-#include <srcom/types.h>
+#include <picom/types.h>
 
 #include "atom.h"
 #include "c2.h"
@@ -19,13 +19,11 @@
 #include "config.h"
 #include "event.h"
 #include "log.h"
-#include "srcom.h"
+#include "picom.h"
 #include "region.h"
 #include "wm/defs.h"
 #include "wm/wm.h"
 #include "x.h"
-
-static void srwm_update_cursor_image(session_t *ps);
 
 /// Event handling with X is complicated. Handling events with other events possibly
 /// in-flight is no good. Because your internal state won't be up to date. Also, querying
@@ -56,7 +54,7 @@ static void srwm_update_cursor_image(session_t *ps);
 /// P.S. There is another reason to avoid sending any request to the server as much as
 /// possible. To make sure requests are sent, flushes are needed. And `xcb_flush`/`XFlush`
 /// functions may read more events from the server into their queues. This is
-/// undesirable, see the comments on `handle_queued_x_events` in srcom.c for more details.
+/// undesirable, see the comments on `handle_queued_x_events` in picom.c for more details.
 
 // TODO(yshui) the things described above. This is mostly done, maybe some of
 //             the functions here is still making unnecessary queries, we need
@@ -556,14 +554,6 @@ static inline void ev_property_notify(session_t *ps, xcb_property_notify_event_t
 			}
 		}
 
-		if (ev->atom == ps->atoms->a_SRWM_CANVAS_ZOOM ||
-		    ev->atom == ps->atoms->a_SRWM_CANVAS_CENTER_X ||
-		    ev->atom == ps->atoms->a_SRWM_CANVAS_CENTER_Y ||
-		    ev->atom == ps->atoms->a_SRWM_CANVAS_ACTIVE) {
-			srwm_read_canvas_state(ps);
-			force_repaint(ps);
-		}
-
 		// Unconcerned about any other properties on root window
 		return;
 	}
@@ -769,14 +759,6 @@ void ev_handle(session_t *ps, xcb_generic_event_t *ev) {
 	// We intentionally ignore events sent via SendEvent. Those events has the 8th bit
 	// of response_type set, meaning they will match none of the cases below.
 	switch (ev->response_type) {
-		case XCB_MOTION_NOTIFY: {
-			xcb_motion_notify_event_t *mev = (xcb_motion_notify_event_t *)ev;
-			if (ps->software_cursor_active) {
-				ps->cursor_x = mev->root_x;
-				ps->cursor_y = mev->root_y;
-			}
-			break;
-		}
 	case XCB_FOCUS_IN: ev_focus_in(ps, (xcb_focus_in_event_t *)ev); break;
 	case XCB_FOCUS_OUT: ev_focus_out(ps, (xcb_focus_out_event_t *)ev); break;
 	case XCB_CREATE_NOTIFY:
@@ -816,13 +798,6 @@ void ev_handle(session_t *ps, xcb_generic_event_t *ev) {
 		}
 		if (ps->c.e.damage_event + XCB_DAMAGE_NOTIFY == ev->response_type) {
 			ev_damage_notify(ps, (xcb_damage_notify_event_t *)ev);
-			break;
-		}
-		if (ps->c.e.has_xfixes &&
-		    ev->response_type == ps->c.e.xfixes_event + XCB_XFIXES_CURSOR_NOTIFY) {
-			if (ps->software_cursor_active) {
-				srwm_update_cursor_image(ps);
-			}
 			break;
 		}
 	}

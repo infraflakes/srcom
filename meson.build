@@ -1,4 +1,4 @@
-project('srcom', 'c', version: '13',
+project('picom', 'c', version: '13',
         default_options: ['c_std=c11', 'warning_level=1'])
 
 cc = meson.get_compiler('c')
@@ -70,7 +70,7 @@ if get_option('modularize')
 	add_global_arguments(['-fmodules',
 	                      '-fmodule-map-file='+
 	                      meson.current_source_dir()+
-	                      '/src/srcom.modulemap'],
+	                      '/src/picom.modulemap'],
 	                     language: 'c')
 endif
 
@@ -105,4 +105,29 @@ endif
 test_h_dep = subproject('test.h').get_variable('test_h_dep')
 
 subdir('src')
+subdir('man')
+subdir('tools')
 subdir('include')
+
+install_data('bin/picom-trans', install_dir: get_option('bindir'))
+install_data('picom.desktop', install_dir: 'share/applications')
+install_data('picom.desktop', install_dir: get_option('sysconfdir') / 'xdg' / 'autostart')
+
+pkgconf = import('pkgconfig')
+
+picom_pc = pkgconf.generate(
+  name: 'picom-api',
+  description: 'picom API headers',
+  requires: [ 'pixman-1', 'xcb' ],
+  subdirs: 'picom',
+)
+
+if get_option('compton')
+	install_data('compton.desktop', install_dir: 'share/applications')
+	install_data('media/icons/48x48/compton.png',
+                     install_dir: 'share/icons/hicolor/48x48/apps')
+	install_data('media/compton.svg',
+                     install_dir: 'share/icons/hicolor/scalable/apps')
+
+	meson.add_install_script('meson/install.sh')
+endif

@@ -8,7 +8,7 @@
 
 extern struct session *ps_g;
 
-int spawn_srcomling(struct x_connection *c) {
+int spawn_picomling(struct x_connection *c) {
 	int dev_null = open("/dev/null", O_RDWR);
 	if (dev_null < 0) {
 		log_error("Failed to open /dev/null");

@@ -11,15 +11,17 @@ srcs = [
 		'c2.c',
 		'config.c',
 		'config_libconfig.c',
+		'diagnostic.c',
 		'event.c',
+		'inspect.c',
 		'log.c',
 		'options.c',
-		'srcom.c',
+		'picom.c',
 		'vblank.c',
 		'x.c',
 	),
 ]
-srcom_inc = include_directories(['.', '../include'])
+picom_inc = include_directories(['.', '../include'])
 
 cflags = []
 
@@ -27,6 +29,7 @@ required_xcb_packages = [
 	'xcb',
 	'xcb-composite',
 	'xcb-damage',
+	'xcb-glx',
 	'xcb-present',
 	'xcb-randr',
 	'xcb-render',
@@ -79,13 +82,21 @@ endif
 
 deps = []
 
-cflags += ['-DCONFIG_OPENGL']
-deps += [dependency('epoxy', required: true)]
-
 if get_option('regex')
 	pcre = dependency('libpcre2-8', required: true)
 	cflags += ['-DCONFIG_REGEX_PCRE']
 	deps += [pcre]
+endif
+
+if get_option('opengl')
+	cflags += ['-DCONFIG_OPENGL']
+	deps += [dependency('epoxy', required: true)]
+endif
+
+if get_option('dbus')
+	cflags += ['-DCONFIG_DBUS']
+	deps += [dependency('dbus-1', required: true)]
+	srcs += ['dbus.c', 'rtkit.c']
 endif
 
 if get_option('unittest')
@@ -125,23 +136,38 @@ libtools = static_library(
 		'transition/curve.c',
 		'transition/script.c',
 	],
-	include_directories: srcom_inc,
+	include_directories: picom_inc,
 	dependencies: [test_h_dep],
 	install: false,
 	build_by_default: false,
 )
 
-srcom = executable(
-	'srcom',
+picom = executable(
+	'picom',
 	srcs,
 	c_args: cflags,
 	dependencies: [base_deps, deps, test_h_dep] + dl_dep,
 	install: true,
-	include_directories: srcom_inc,
+	include_directories: picom_inc,
 	export_dynamic: true,
 	gnu_symbol_visibility: 'hidden',
 )
 
 if get_option('unittest')
-	test('srcom unittest', srcom, args: ['--unittest'])
+	test('picom unittest', picom, args: ['--unittest'])
+endif
+
+install_symlink('picom-inspect', install_dir: 'bin', pointing_to: 'picom')
+
+if cc.has_argument('-fsanitize=fuzzer')
+	c2_fuzz = executable(
+		'c2_fuzz',
+		srcs + ['fuzzer/c2.c'],
+		c_args: cflags + ['-fsanitize=fuzzer', '-DCONFIG_FUZZER'],
+		link_args: ['-fsanitize=fuzzer'],
+		dependencies: [base_deps, deps, test_h_dep],
+		build_by_default: false,
+		install: false,
+		include_directories: picom_inc,
+	)
 endif

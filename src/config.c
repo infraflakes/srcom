@@ -17,7 +17,7 @@
 #include <unistd.h>
 #include <xcb/render.h>        // for xcb_render_fixed_t, XXX
 
-#include <srcom/types.h>
+#include <picom/types.h>
 #include <test.h>
 
 #include "common.h"
@@ -461,7 +461,7 @@ static char *locate_auxiliary_file_at(const char *base, const char *scope, const
  *   1) If an absolute path is given, use it directly.
  *   2) Search for the file directly under `include_dir`.
  *   3) Search for the file in the XDG configuration directories, under path
- *      /srcom/<scope>/
+ *      /picom/<scope>/
  */
 char *locate_auxiliary_file(const char *scope, const char *path, const char *include_dir) {
 	if (!path || strlen(path) == 0) {
@@ -485,10 +485,10 @@ char *locate_auxiliary_file(const char *scope, const char *path, const char *inc
 	}
 
 	// Fall back to searching in user config directory
-	scoped_charp srcom_scope = mstrjoin("/srcom/", scope);
+	scoped_charp picom_scope = mstrjoin("/picom/", scope);
 	scoped_charp config_home = (char *)xdg_config_home();
 	if (config_home) {
-		char *ret = locate_auxiliary_file_at(config_home, srcom_scope, path);
+		char *ret = locate_auxiliary_file_at(config_home, picom_scope, path);
 		if (ret) {
 			return ret;
 		}
@@ -497,7 +497,7 @@ char *locate_auxiliary_file(const char *scope, const char *path, const char *inc
 	// Fall back to searching in system config directory
 	auto config_dirs = xdg_config_dirs();
 	for (int i = 0; config_dirs[i]; i++) {
-		char *ret = locate_auxiliary_file_at(config_dirs[i], srcom_scope, path);
+		char *ret = locate_auxiliary_file_at(config_dirs[i], picom_scope, path);
 		if (ret) {
 			free(config_dirs);
 			return ret;
@@ -517,6 +517,7 @@ struct debug_options_entry {
 // clang-format off
 const char *vblank_scheduler_str[] = {
 	[VBLANK_SCHEDULER_PRESENT] = "present",
+	[VBLANK_SCHEDULER_SGI_VIDEO_SYNC] = "sgi_video_sync",
 	[LAST_VBLANK_SCHEDULER] = NULL
 };
 static const struct debug_options_entry debug_options_entries[] = {
@@ -645,6 +646,7 @@ bool load_plugin(const char *name, const char *include_dir) {
 bool parse_config(options_t *opt, const char *config_file) {
 	// clang-format off
 	*opt = (struct options){
+	    .glx_no_stencil = false,
 	    .mark_wmwin_focused = false,
 	    .mark_ovredir_focused = false,
 	    .detect_rounded_corners = false,
@@ -654,6 +656,7 @@ bool parse_config(options_t *opt, const char *config_file) {
 	    .unredir_if_possible_delay = 0,
 	    .redirected_force = UNSET,
 	    .stoppaint_force = UNSET,
+	    .dbus = false,
 	    .benchmark = 0,
 	    .benchmark_wid = XCB_NONE,
 	    .logpath = NULL,

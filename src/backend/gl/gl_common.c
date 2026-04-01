@@ -10,7 +10,7 @@
 #include <time.h>
 #include <xcb/render.h>        // for xcb_render_fixed_t, XXX
 
-#include <srcom/types.h>
+#include <picom/types.h>
 
 #include "backend/backend_common.h"
 #include "common.h"
@@ -209,28 +209,20 @@ _gl_average_texture_color(GLuint source_texture, GLuint destination_texture,
 	// Prepare coordinates
 	GLint coord[] = {
 	    // top left
-	    0,
-	    0,        // vertex coord
-	    0,
-	    0,        // texture coord
+	    0, 0,        // vertex coord
+	    0, 0,        // texture coord
 
 	    // top right
-	    to_width,
-	    0,        // vertex coord
-	    width,
-	    0,        // texture coord
+	    to_width, 0,        // vertex coord
+	    width, 0,           // texture coord
 
 	    // bottom right
-	    to_width,
-	    to_height,        // vertex coord
-	    width,
-	    height,        // texture coord
+	    to_width, to_height,        // vertex coord
+	    width, height,              // texture coord
 
 	    // bottom left
-	    0,
-	    to_height,        // vertex coord
-	    0,
-	    height,        // texture coord
+	    0, to_height,        // vertex coord
+	    0, height,           // texture coord
 	};
 	glBufferSubData(GL_ARRAY_BUFFER, 0, (long)sizeof(*coord) * 16, coord);
 
@@ -1069,7 +1061,6 @@ bool gl_init(struct gl_data *gd, session_t *ps) {
 		          "missing.");
 		return false;
 	}
-	gd->ps = ps;
 	glGenQueries(2, gd->frame_timing);
 	gd->current_frame_timing = 0;
 
@@ -1204,59 +1195,6 @@ bool gl_init(struct gl_data *gd, session_t *ps) {
 	gd->has_egl_image_storage = epoxy_has_gl_extension("GL_EXT_EGL_image_storage");
 	gd->back_image.y_inverted = false;
 
-	gd->cursor_texture_initialized = false;
-	gd->cursor_texture = 0;
-	gd->cursor_shader.prog = gl_create_program_from_str(cursor_vert, cursor_frag);
-	if (!gd->cursor_shader.prog) {
-		log_error("Failed to create the cursor shader");
-		return false;
-	}
-	gd->cursor_shader.uniform_bitmask = (uint32_t)-1;
-	glUseProgram(gd->cursor_shader.prog);
-	glUniform1i(UNIFORM_TEX_LOC, 0);
-	glUniformMatrix4fv(UNIFORM_PROJECTION_LOC, 1, false, projection_matrix[0]);
-	glUseProgram(0);
-
-	for (int i = 0; i < BORDER_BLUR_LEVELS; i++) {
-		gd->border_blur_fbo[i] = 0;
-		gd->border_blur_textures[i] = 0;
-		gd->border_blur_tex_w[i] = gd->border_blur_tex_h[i] = 0;
-	}
-	gd->border_blur_shader.prog = gl_create_program_from_str(border_blur_vert, border_blur_frag);
-	if (!gd->border_blur_shader.prog) {
-		log_error("Failed to create border blur shader");
-		return false;
-	}
-	gd->border_blur_shader.uniform_bitmask = (uint32_t)-1;
-	glUseProgram(gd->border_blur_shader.prog);
-	glUniform1i(UNIFORM_TEX_LOC, 0);
-	glUniformMatrix4fv(UNIFORM_PROJECTION_LOC, 1, false, projection_matrix[0]);
-	gd->border_blur_viewport_loc = glGetUniformLocation(gd->border_blur_shader.prog, "viewport_rect");
-	gd->border_blur_corner_radius_loc = glGetUniformLocation(gd->border_blur_shader.prog, "corner_radius");
-	gd->border_blur_screen_size_loc = glGetUniformLocation(gd->border_blur_shader.prog, "screen_size");
-	glUseProgram(0);
-
-	gd->kawase_down_shader.prog = gl_create_program_from_str(kawase_down_vert, kawase_down_frag);
-	if (!gd->kawase_down_shader.prog) {
-		log_error("Failed to create kawase downsample shader");
-		return false;
-	}
-	glUseProgram(gd->kawase_down_shader.prog);
-	glUniform1i(UNIFORM_TEX_LOC, 0);
-	glUseProgram(0);
-
-	gd->kawase_up_shader.prog = gl_create_program_from_str(kawase_up_vert, kawase_up_frag);
-	if (!gd->kawase_up_shader.prog) {
-		log_error("Failed to create kawase upsample shader");
-		return false;
-	}
-	glUseProgram(gd->kawase_up_shader.prog);
-	glUniform1i(UNIFORM_TEX_LOC, 0);
-	glUseProgram(0);
-
-	glGenFramebuffers(BORDER_BLUR_LEVELS, gd->border_blur_fbo);
-	glGenTextures(BORDER_BLUR_LEVELS, gd->border_blur_textures);
-
 	gl_check_err();
 
 	return true;
@@ -1292,254 +1230,7 @@ void gl_deinit(struct gl_data *gd) {
 
 	glDeleteQueries(2, gd->frame_timing);
 
-	if (gd->cursor_texture) {
-		glDeleteTextures(1, &gd->cursor_texture);
-	}
-	glDeleteProgram(gd->cursor_shader.prog);
-
-	if (gd->border_blur_textures[0]) {
-		glDeleteTextures(BORDER_BLUR_LEVELS, gd->border_blur_textures);
-	}
-	if (gd->border_blur_fbo[0]) {
-		glDeleteFramebuffers(BORDER_BLUR_LEVELS, gd->border_blur_fbo);
-	}
-	glDeleteProgram(gd->border_blur_shader.prog);
-	glDeleteProgram(gd->kawase_down_shader.prog);
-	glDeleteProgram(gd->kawase_up_shader.prog);
-
 	gl_check_err();
-}
-
-void gl_draw_zoom_border_blur(struct gl_data *gd) {
-	session_t *ps = gd->ps;
-	if (!ps->srwm_canvas_active || ps->srwm_zoom >= 1.0f) {
-		return;
-	}
-
-	float zoom = ps->srwm_zoom;
-	int screen_w = gd->back_image.width;
-	int screen_h = gd->back_image.height;
-	float cx = (float)ps->srwm_center_x;
-	float cy = (float)ps->srwm_center_y;
-
-	float vp_left = cx + (0.0f - cx) * zoom;
-	float vp_right = cx + ((float)screen_w - cx) * zoom;
-	float vp_top = cy + (0.0f - cy) * zoom;
-	float vp_bottom = cy + ((float)screen_h - cy) * zoom;
-
-	vp_left = fmaxf(0, vp_left);
-	vp_top = fmaxf(0, vp_top);
-	vp_right = fminf((float)screen_w, vp_right);
-	vp_bottom = fminf((float)screen_h, vp_bottom);
-
-	if (vp_left <= 0 && vp_top <= 0 && vp_right >= screen_w && vp_bottom >= screen_h) {
-		return;
-	}
-
-	int tw = (screen_w + 1) / 2;
-	int th = (screen_h + 1) / 2;
-	bool need_realloc = false;
-	for (int i = 0; i < BORDER_BLUR_LEVELS; i++) {
-		int w = tw >> i;
-		int h = th >> i;
-		if (w < 1) w = 1;
-		if (h < 1) h = 1;
-		if (gd->border_blur_tex_w[i] != w || gd->border_blur_tex_h[i] != h) {
-			need_realloc = true;
-		}
-	}
-	if (need_realloc) {
-		for (int i = 0; i < BORDER_BLUR_LEVELS; i++) {
-			int w = tw >> i;
-			int h = th >> i;
-			if (w < 1) w = 1;
-			if (h < 1) h = 1;
-			gd->border_blur_tex_w[i] = w;
-			gd->border_blur_tex_h[i] = h;
-			glBindTexture(GL_TEXTURE_2D, gd->border_blur_textures[i]);
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, w, h, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-		}
-		glBindTexture(GL_TEXTURE_2D, 0);
-	}
-
-	glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gd->border_blur_fbo[0]);
-	glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-						   GL_TEXTURE_2D, gd->border_blur_textures[0], 0);
-	glBlitFramebuffer(0, screen_h, screen_w, 0,
-					  0, 0, gd->border_blur_tex_w[0], gd->border_blur_tex_h[0],
-					  GL_COLOR_BUFFER_BIT, GL_LINEAR);
-
-	float fsq[] = {
-		-1, -1, 0, 0,
-		 1, -1, 1, 0,
-		-1,  1, 0, 1,
-		 1,  1, 1, 1,
-	};
-	GLuint fsq_indices[] = {0, 1, 2, 2, 1, 3};
-
-	glBindVertexArray(gd->vertex_array_objects[0]);
-	glBindBuffer(GL_ARRAY_BUFFER, gd->buffer_objects[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(fsq), fsq, GL_STREAM_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gd->buffer_objects[1]);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(fsq_indices), fsq_indices, GL_STREAM_DRAW);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)(2 * sizeof(float)));
-
-	glDisable(GL_BLEND);
-
-	glUseProgram(gd->kawase_down_shader.prog);
-	for (int i = 1; i < BORDER_BLUR_LEVELS; i++) {
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, gd->border_blur_textures[i - 1]);
-		glUniform2f(UNIFORM_PIXEL_NORM_LOC,
-					1.0f / (float)gd->border_blur_tex_w[i - 1],
-					1.0f / (float)gd->border_blur_tex_h[i - 1]);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gd->border_blur_fbo[i]);
-		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-							   GL_TEXTURE_2D, gd->border_blur_textures[i], 0);
-		glViewport(0, 0, gd->border_blur_tex_w[i], gd->border_blur_tex_h[i]);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
-	}
-
-	glUseProgram(gd->kawase_up_shader.prog);
-	for (int i = BORDER_BLUR_LEVELS - 1; i > 0; i--) {
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, gd->border_blur_textures[i]);
-		glUniform2f(UNIFORM_PIXEL_NORM_LOC,
-					1.0f / (float)gd->border_blur_tex_w[i],
-					1.0f / (float)gd->border_blur_tex_h[i]);
-		glBindFramebuffer(GL_DRAW_FRAMEBUFFER, gd->border_blur_fbo[i - 1]);
-		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
-							   GL_TEXTURE_2D, gd->border_blur_textures[i - 1], 0);
-		glViewport(0, 0, gd->border_blur_tex_w[i - 1], gd->border_blur_tex_h[i - 1]);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
-	}
-
-	GLint viewport_dimensions[2];
-	glGetIntegerv(GL_MAX_VIEWPORT_DIMS, viewport_dimensions);
-	glViewport(0, 0, viewport_dimensions[0], viewport_dimensions[1]);
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-
-	glUseProgram(gd->border_blur_shader.prog);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, gd->border_blur_textures[0]);
-	glUniform1f(UNIFORM_OPACITY_LOC, 0.7f); // set darkness value for border blur
-
-	glUniform4f(gd->border_blur_viewport_loc, vp_left, vp_top, vp_right, vp_bottom);
-	glUniform1f(gd->border_blur_corner_radius_loc, 20.0f);
-	glUniform2f(gd->border_blur_screen_size_loc, (float)screen_w, (float)screen_h);
-
-	GLfloat border_fsq[] = {
-		0,              0,                  0, 1,
-		(float)screen_w, 0,                 1, 1,
-		0,              (float)screen_h,    0, 0,
-		(float)screen_w, (float)screen_h,   1, 0,
-	};
-	GLuint border_indices[] = {0, 1, 2, 2, 1, 3};
-
-	glBufferData(GL_ARRAY_BUFFER, sizeof(border_fsq), border_fsq, GL_STREAM_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(border_indices), border_indices, GL_STREAM_DRAW);
-	glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
-
-	glDisableVertexAttribArray(0);
-	glDisableVertexAttribArray(1);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	glBindVertexArray(0);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	glUseProgram(0);
-
-	gl_check_err();
-}
-
-void gl_draw_software_cursor(struct gl_data *gd) {
-	if (!gd->cursor_texture_initialized || !gd->cursor_texture) {
-		return;
-	}
-
-	session_t *ps = gd->ps;
-	if (!ps->software_cursor_active || !ps->cursor_image_valid) {
-		return;
-	}
-
-	float zoom = ps->srwm_zoom;
-	int zoom_cx = ps->srwm_center_x;
-	int zoom_cy = ps->srwm_center_y;
-	int cursor_x = ps->cursor_x;
-	int cursor_y = ps->cursor_y;
-	int hotspot_x = ps->cursor_hotspot_x;
-	int hotspot_y = ps->cursor_hotspot_y;
-	int cursor_w = ps->cursor_width;
-	int cursor_h = ps->cursor_height;
-
-	float draw_h = (float)cursor_h * zoom;
-	float draw_x = (float)zoom_cx + ((float)cursor_x - (float)zoom_cx) * zoom - (float)hotspot_x * zoom;
-	float visual_y = (float)zoom_cy + ((float)cursor_y - (float)zoom_cy) * zoom - (float)hotspot_y * zoom;  
-	float draw_y = (float)gd->back_image.height - visual_y - draw_h;
-	float draw_w = (float)cursor_w * zoom;
-
-	GLint saved_vao;
-	glGetIntegerv(GL_VERTEX_ARRAY_BINDING, &saved_vao);
-
-	glEnable(GL_BLEND);
-	glBlendFunc(GL_ONE, GL_ONE_MINUS_SRC_ALPHA);
-
-	glUseProgram(gd->cursor_shader.prog);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, gd->cursor_texture);
-
-	float vertices[] = {  
-		draw_x, draw_y,           0.0f, 1.0f,   // bottom-left: V=1 (bottom of texture)  
-		draw_x + draw_w, draw_y,  1.0f, 1.0f,   // bottom-right  
-		draw_x, draw_y + draw_h,  0.0f, 0.0f,   // top-left: V=0 (top of texture)  
-		draw_x + draw_w, draw_y + draw_h, 1.0f, 0.0f,  // top-right  
-	};
-
-	glBindVertexArray(gd->vertex_array_objects[0]);
-	glBindBuffer(GL_ARRAY_BUFFER, gd->buffer_objects[0]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STREAM_DRAW);
-
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void *)0);
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float),
-	                      (void *)(2 * sizeof(float)));
-
-	glDrawArrays(GL_TRIANGLE_STRIP, 0, 4);
-
-	glDisableVertexAttribArray(0);
-	glDisableVertexAttribArray(1);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	glBindVertexArray(saved_vao);
-
-	glUseProgram(0);
-
-	gl_check_err();
-}
-
-void gl_update_cursor_texture(struct gl_data *gd, uint32_t *pixels, int width, int height) {
-	if (!gd->cursor_texture) {
-		glGenTextures(1, &gd->cursor_texture);
-	}
-	glBindTexture(GL_TEXTURE_2D, gd->cursor_texture);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width, height, 0, GL_BGRA,
-	             GL_UNSIGNED_BYTE, pixels);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glBindTexture(GL_TEXTURE_2D, 0);
-	gd->cursor_texture_initialized = true;
 }
 
 GLuint gl_new_texture(void) {

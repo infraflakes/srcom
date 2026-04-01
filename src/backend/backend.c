@@ -4,7 +4,7 @@
 #include <xcb/sync.h>
 #include <xcb/xcb.h>
 
-#include <srcom/types.h>
+#include <picom/types.h>
 
 #include "common.h"
 #include "compiler.h"

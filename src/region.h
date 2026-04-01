@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <xcb/xcb.h>
 
-#include <srcom/types.h>
+#include <picom/types.h>
 
 #include "log.h"
 #include "utils/misc.h"

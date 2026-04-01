@@ -2,7 +2,7 @@
 // Copyright (c) Yuxuan Shui <yshuiv7@gmail.com>
 #pragma once
 #include <epoxy/gl.h>
-#include <srcom/backend.h>
+#include <picom/backend.h>
 #include <stdbool.h>
 #include <xcb/xproto.h>
 
@@ -84,7 +84,6 @@ enum gl_sampler {
 
 struct gl_data {
 	struct backend_base base;
-	session_t *ps;
 	// If we are using proprietary NVIDIA driver
 	bool is_nvidia;
 	// If ARB_robustness extension is present
@@ -113,25 +112,6 @@ struct gl_data {
 	void (*release_user_data)(backend_t *base, struct gl_texture *);
 
 	struct log_target *logger;
-
-	/// Software cursor texture
-	GLuint cursor_texture;
-	/// Software cursor shader program
-	struct gl_shader cursor_shader;
-	/// Whether cursor texture is initialized
-	bool cursor_texture_initialized;
-
-	/// Zoom border blur resources
-#define BORDER_BLUR_LEVELS 4
-	GLuint border_blur_fbo[BORDER_BLUR_LEVELS];
-	GLuint border_blur_textures[BORDER_BLUR_LEVELS];
-	int border_blur_tex_w[BORDER_BLUR_LEVELS], border_blur_tex_h[BORDER_BLUR_LEVELS];
-	struct gl_shader border_blur_shader;
-	struct gl_shader kawase_down_shader;
-	struct gl_shader kawase_up_shader;
-	GLint border_blur_viewport_loc;
-	GLint border_blur_corner_radius_loc;
-	GLint border_blur_screen_size_loc;
 };
 
 typedef struct session session_t;
@@ -177,9 +157,6 @@ void gl_resize(struct gl_data *, int width, int height);
 
 bool gl_init(struct gl_data *gd, session_t *);
 void gl_deinit(struct gl_data *gd);
-void gl_draw_software_cursor(struct gl_data *gd);
-void gl_draw_zoom_border_blur(struct gl_data *gd);
-void gl_update_cursor_texture(struct gl_data *gd, uint32_t *pixels, int width, int height);
 
 GLuint gl_new_texture(void);
 
@@ -334,6 +311,4 @@ static const GLuint vert_in_texcoord_loc = 1;
 extern const char vertex_shader[], blend_with_mask_frag[], masking_glsl[],
     scaled_masking_glsl[], copy_area_frag[], copy_area_with_dither_frag[], fill_frag[],
     fill_vert[], interpolating_frag[], interpolating_vert[], blit_shader_glsl[],
-    blit_shader_default[], present_vertex_shader[], dither_glsl[], cursor_vert[],
-    cursor_frag[], border_blur_vert[], border_blur_frag[], kawase_down_vert[],
-    kawase_down_frag[], kawase_up_vert[], kawase_up_frag[];
+    blit_shader_default[], present_vertex_shader[], dither_glsl[];

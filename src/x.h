@@ -50,16 +50,16 @@ struct x_extensions {
 	int damage_event;
 	/// The X Damage extension's base error number.
 	int damage_error;
-	/// The X Fixes extension's presence.
-	bool has_xfixes;
-	/// The X Fixes extension's base event number.
-	int xfixes_event;
 	/// The X Fixes extension's base error number.
 	int fixes_error;
 	/// MIT-SHM's base error number.
 	int shm_error;
 	/// MIT-SHM's base event number.
 	int shm_event;
+	/// The X GLX extension's presence.
+	bool has_glx;
+	/// The X GLX extension's base error number.
+	int glx_error;
 	/// The X Present extension's presence.
 	bool has_present;
 	/// The X RandR extension's presence.

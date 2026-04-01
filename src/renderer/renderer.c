@@ -4,7 +4,7 @@
 #include "renderer.h"
 
 #include <inttypes.h>
-#include <srcom/backend.h>
+#include <picom/backend.h>
 #include <xcb/xcb_aux.h>
 
 #include "backend/backend.h"
@@ -12,7 +12,7 @@
 #include "command_builder.h"
 #include "damage.h"
 #include "layout.h"
-#include "srcom.h"
+#include "picom.h"
 #include "utils/dynarr.h"
 
 struct renderer {

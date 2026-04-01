@@ -21,8 +21,8 @@
         # like lib.lists.remove, but takes a list of elements to remove
         llvmVersion = "20";
         removeFromList = toRemove: list: pkgs.lib.foldl (l: e: pkgs.lib.remove e l) list toRemove;
-        srcomOverlay = final: prev: {
-          srcom = prev.callPackage ./package.nix {
+        picomOverlay = final: prev: {
+          picom = prev.callPackage ./package.nix {
             inherit git-ignore-nix;
             llvmPackages = prev."llvmPackages_${llvmVersion}";
             withDocs = true;
@@ -30,7 +30,7 @@
           };
         };
         overlays = [
-          srcomOverlay
+          picomOverlay
         ];
         pkgs = import nixpkgs {
           inherit system overlays;
@@ -64,30 +64,30 @@
           });
       in
       rec {
-        overlay = srcomOverlay;
+        overlay = picomOverlay;
         packages = {
-          srcom = pkgs.srcom;
-          default = pkgs.srcom;
+          picom = pkgs.picom;
+          default = pkgs.picom;
         }
         // (nixpkgs.lib.optionalAttrs (system == "x86_64-linux") rec {
-          srcom-cross =
+          picom-cross =
             let
               mkMinimal =
-                srcom:
-                srcom.override {
+                picom:
+                picom.override {
                   withDocs = false;
                   withTools = false;
                 };
             in
             {
-              armv7l = mkMinimal pkgs.pkgsCross.armv7l-hf-multiplatform.srcom;
-              aarch64 = mkMinimal pkgs.pkgsCross.aarch64-multiplatform.srcom;
-              i686 = mkMinimal pkgs.pkgsi686Linux.srcom;
-              merged = pkgs.runCommand "srcom-merged" { } ''
+              armv7l = mkMinimal pkgs.pkgsCross.armv7l-hf-multiplatform.picom;
+              aarch64 = mkMinimal pkgs.pkgsCross.aarch64-multiplatform.picom;
+              i686 = mkMinimal pkgs.pkgsi686Linux.picom;
+              merged = pkgs.runCommand "picom-merged" { } ''
                 mkdir $out
-                ln -s ${srcom-cross.armv7l} $out/armv7l
-                ln -s ${srcom-cross.aarch64} $out/aarch64
-                ln -s ${srcom-cross.i686} $out/i686
+                ln -s ${picom-cross.armv7l} $out/armv7l
+                ln -s ${picom-cross.aarch64} $out/aarch64
+                ln -s ${picom-cross.i686} $out/i686
               '';
             };
         });
@@ -95,10 +95,10 @@
         devShells.useClang = devShells.default.override {
           inherit (pkgs."llvmPackages_${llvmVersion}") stdenv;
         };
-        # build srcom and all dependencies with frame pointer, making profiling/debugging easier.
+        # build picom and all dependencies with frame pointer, making profiling/debugging easier.
         # WARNING! many many rebuilds
         devShells.useClangProfile =
-          (mkDevShell (profilePkgs.srcom.override { devShell = true; })).override
+          (mkDevShell (profilePkgs.picom.override { devShell = true; })).override
             {
               stdenv =
                 profilePkgs.withCFlags "-fno-omit-frame-pointer"

@@ -11,6 +11,7 @@
 #include <pixman.h>
 #include <xcb/composite.h>
 #include <xcb/damage.h>
+#include <xcb/glx.h>
 #include <xcb/present.h>
 #include <xcb/randr.h>
 #include <xcb/render.h>
@@ -75,6 +76,26 @@ static const char *x_error_code_to_string(struct x_connection *c, unsigned long 
 		CASESTRRET2(RENDER_PICT_OP);
 		CASESTRRET2(RENDER_GLYPH_SET);
 		CASESTRRET2(RENDER_GLYPH);
+	}
+
+	if (c->e.has_glx) {
+		o = error_code - c->e.glx_error;
+		switch (o) {
+			CASESTRRET2(GLX_BAD_CONTEXT);
+			CASESTRRET2(GLX_BAD_CONTEXT_STATE);
+			CASESTRRET2(GLX_BAD_DRAWABLE);
+			CASESTRRET2(GLX_BAD_PIXMAP);
+			CASESTRRET2(GLX_BAD_CONTEXT_TAG);
+			CASESTRRET2(GLX_BAD_CURRENT_WINDOW);
+			CASESTRRET2(GLX_BAD_RENDER_REQUEST);
+			CASESTRRET2(GLX_BAD_LARGE_REQUEST);
+			CASESTRRET2(GLX_UNSUPPORTED_PRIVATE_REQUEST);
+			CASESTRRET2(GLX_BAD_FB_CONFIG);
+			CASESTRRET2(GLX_BAD_PBUFFER);
+			CASESTRRET2(GLX_BAD_CURRENT_DRAWABLE);
+			CASESTRRET2(GLX_BAD_WINDOW);
+			CASESTRRET2(GLX_GLX_BAD_PROFILE_ARB);
+		}
 	}
 
 	if (c->e.has_sync) {
@@ -209,6 +230,7 @@ bool x_extensions_init(struct x_connection *c) {
 	xcb_prefetch_extension_data(c->c, &xcb_composite_id);
 	xcb_prefetch_extension_data(c->c, &xcb_damage_id);
 	xcb_prefetch_extension_data(c->c, &xcb_xfixes_id);
+	xcb_prefetch_extension_data(c->c, &xcb_glx_id);
 	xcb_prefetch_extension_data(c->c, &xcb_present_id);
 	xcb_prefetch_extension_data(c->c, &xcb_randr_id);
 	xcb_prefetch_extension_data(c->c, &xcb_render_id);
@@ -269,8 +291,6 @@ bool x_extensions_init(struct x_connection *c) {
 		return false;
 	}
 
-	c->e.has_xfixes = true;
-	c->e.xfixes_event = extension->first_event;
 	c->e.fixes_error = extension->first_error;
 
 	// According to the X Fixes extension's specification:
@@ -303,6 +323,13 @@ bool x_extensions_init(struct x_connection *c) {
 		return false;
 	}
 	free(shm_info);
+
+	// Initialize the X GLX extension.
+	extension = xcb_get_extension_data(c->c, &xcb_glx_id);
+	if (extension && extension->present) {
+		c->e.has_glx = true;
+		c->e.glx_error = extension->first_error;
+	}
 
 	// Initialize the X Present extension.
 	extension = xcb_get_extension_data(c->c, &xcb_present_id);

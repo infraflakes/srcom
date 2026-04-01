@@ -3,7 +3,7 @@
 
 #pragma once
 
-#include <srcom/types.h>
+#include <picom/types.h>
 
 typedef struct pixman_region32 region_t;
 struct layout;

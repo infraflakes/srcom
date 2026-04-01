@@ -31,8 +31,8 @@
 #include <xcb/sync.h>
 #include <xcb/xproto.h>
 
-#include <srcom/backend.h>
-#include <srcom/types.h>
+#include <picom/backend.h>
+#include <picom/types.h>
 
 // FIXME This list of includes should get shorter
 #include "backend/driver.h"
@@ -200,25 +200,10 @@ typedef struct session {
 	// === Atoms ===
 	struct atom *atoms;
 
-	// === srwm canvas zoom ===
-	/// Current zoom level (1.0 = no zoom)
-	float srwm_zoom;
-	/// Screen center for zoom origin
-	int srwm_center_x, srwm_center_y;
-	/// Whether srwm canvas mode is active
-	bool srwm_canvas_active;
-
-	// === Software cursor for srwm zoom ===
-	/// Whether the software cursor is currently active
-	bool software_cursor_active;
-	/// Current cursor position (root coordinates)
-	int cursor_x, cursor_y;
-	/// Cursor hotspot offset
-	int cursor_hotspot_x, cursor_hotspot_y;
-	/// Cursor image dimensions
-	int cursor_width, cursor_height;
-	/// Whether we have a valid cursor image
-	bool cursor_image_valid;
+#ifdef CONFIG_DBUS
+	// === DBus related ===
+	struct cdbus_data *dbus_data;
+#endif
 } session_t;
 
 struct wintype_info {
@@ -269,4 +254,3 @@ static inline bool wid_has_prop(xcb_connection_t *c, xcb_window_t w, xcb_atom_t 
 }
 
 void force_repaint(session_t *ps);
-void srwm_read_canvas_state(session_t *ps);

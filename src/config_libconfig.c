@@ -43,7 +43,7 @@ static inline int lcfg_lookup_bool(const config_t *config, const char *path, boo
 
 /// Search for config file under a base directory
 FILE *open_config_file_at(const char *base, char **out_path) {
-	static const char *config_paths[] = {"/srcom.conf", "/srcom/srcom.conf",
+	static const char *config_paths[] = {"/picom.conf", "/picom/picom.conf",
 	                                     "/compton.conf", "/compton/compton.conf"};
 	for (size_t i = 0; i < ARR_SIZE(config_paths); i++) {
 		char *path = mstrjoin(base, config_paths[i]);
@@ -55,10 +55,10 @@ FILE *open_config_file_at(const char *base, char **out_path) {
 		}
 		if (ret) {
 			if (strstr(config_paths[i], "compton")) {
-				log_warn("This compositor has been renamed to \"srcom\", "
+				log_warn("This compositor has been renamed to \"picom\", "
 				         "the old config file paths is deprecated. "
 				         "Please replace the \"compton\"s in the path "
-				         "with \"srcom\"");
+				         "with \"picom\"");
 			}
 			return ret;
 		}
@@ -940,6 +940,9 @@ bool parse_config_libconfig(options_t *opt, const char *config_file) { /*NOLINT(
 		}
 	}
 
+	// --dbus
+	lcfg_lookup_bool(&cfg, "dbus", &opt->dbus);
+
 	// -D (fade_delta)
 	if (config_lookup_int(&cfg, "fade-delta", &ival)) {
 		opt->fade_delta = ival;
@@ -1197,6 +1200,14 @@ bool parse_config_libconfig(options_t *opt, const char *config_file) { /*NOLINT(
 	if (config_lookup_int(&cfg, "resize-damage", &opt->resize_damage)) {
 		report_deprecated_option(opt, "resize-damage", false);
 	}
+	// --glx-no-stencil
+	if (lcfg_lookup_bool(&cfg, "glx-no-stencil", &opt->glx_no_stencil)) {
+		report_deprecated_option(opt, "glx-no-stencil", false);
+	}
+	// --glx-no-rebind-pixmap
+	if (lcfg_lookup_bool(&cfg, "glx-no-rebind-pixmap", &opt->glx_no_rebind_pixmap)) {
+		report_deprecated_option(opt, "glx-no-rebind-pixmap", false);
+	}
 	lcfg_lookup_bool(&cfg, "force-win-blend", &opt->force_win_blend);
 	// --use-damage
 	lcfg_lookup_bool(&cfg, "use-damage", &opt->use_damage);
@@ -1228,6 +1239,9 @@ bool parse_config_libconfig(options_t *opt, const char *config_file) { /*NOLINT(
 			goto out;
 		}
 	}
+
+	// --xrender-sync-fence
+	lcfg_lookup_bool(&cfg, "xrender-sync-fence", &opt->xrender_sync_fence);
 
 	config_setting_t *blur_cfg = config_lookup(&cfg, "blur");
 	if (blur_cfg) {
